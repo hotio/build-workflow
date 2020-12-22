@@ -27,7 +27,7 @@ jobs:
             repo=${array[0]}
             branch=${array[1]}
             git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
-            cp ${GITHUB_WORKSPACE}/build.yml ${GITHUB_WORKSPACE}/${repo}/build.yml
+            cp ${GITHUB_WORKSPACE}/build.yml ${GITHUB_WORKSPACE}/${repo}/.github/workflows/build.yml
             cd ${GITHUB_WORKSPACE}/${repo} || exit 1
             git add build.yml
             if git commit -m "Updated build.yml"; then
