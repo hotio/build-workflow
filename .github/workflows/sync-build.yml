@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'build.yml'
+      - 'tosync'
     branches:
       - master
 
