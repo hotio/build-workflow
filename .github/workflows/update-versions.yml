@@ -25,8 +25,8 @@ jobs:
               repo=${array[0]}
               branch=${array[1]}
               git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
-              bash ${GITHUB_WORKSPACE}/${repo}/update.sh && true
               cd ${GITHUB_WORKSPACE}/${repo} || exit 1
+              bash ./update.sh && true
               git add .
               if git commit -m "Version update"; then
                 git push
