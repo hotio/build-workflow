@@ -1,6 +1,7 @@
 name: sync-build.yml
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'build.yml'
@@ -31,7 +32,7 @@ jobs:
               cp ${GITHUB_WORKSPACE}/build.yml ${GITHUB_WORKSPACE}/${repo}/.github/workflows/build.yml
               cd ${GITHUB_WORKSPACE}/${repo} || exit 1
               git add .github/workflows/build.yml
-              if git commit -m "Updated build.yml [${{github.event.head_commit.message}}]"; then
+              if git commit -m "Updated build.yml [skip ci]"; then
                 git push
               fi
               cd ${GITHUB_WORKSPACE} || exit 1
