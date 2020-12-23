@@ -25,7 +25,7 @@ jobs:
               repo=${array[0]}
               branch=${array[1]}
               git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
-              bash ${GITHUB_WORKSPACE}/update.sh checkdigests && true
+              bash ${GITHUB_WORKSPACE}/${repo}/update.sh checkdigests && true
               cd ${GITHUB_WORKSPACE}/${repo} || exit 1
               git add .
               if git commit -m "Digest update"; then
