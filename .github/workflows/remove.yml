@@ -1,0 +1,36 @@
+name: remove
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Remove
+        env:
+          GITHUB_OWNER: ${{ github.repository_owner }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          git config --global user.email "${GITHUB_OWNER}@users.noreply.github.com"
+          git config --global user.name "${GITHUB_OWNER}"
+
+          while IFS= read -r line; do
+            if [[ -n ${line} ]]; then
+              array=(${line})
+              repo=${array[0]}
+              branch=master
+              git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
+              cd ${GITHUB_WORKSPACE}/${repo} || exit 1
+              rm -rf .github
+              rm .gitattributes
+              git add --all
+              if git commit -m "Remove obsolete files"; then
+                git push
+              fi
+              cd ${GITHUB_WORKSPACE} || exit 1
+              rm -rf ${GITHUB_WORKSPACE}/${repo}
+            fi
+          done < "${GITHUB_WORKSPACE}/tosync"
