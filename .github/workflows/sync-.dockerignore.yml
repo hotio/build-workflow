@@ -1,0 +1,41 @@
+name: sync-.dockerignore
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.dockerignore'
+      - 'tosync'
+    branches:
+      - master
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Sync .dockerignore
+        env:
+          GITHUB_OWNER: ${{ github.repository_owner }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          git config --global user.email "${GITHUB_OWNER}@users.noreply.github.com"
+          git config --global user.name "${GITHUB_OWNER}"
+
+          while IFS= read -r line; do
+            if [[ -n ${line} ]]; then
+              array=(${line})
+              repo=${array[0]}
+              branch=${array[1]}
+              git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
+              cp ${GITHUB_WORKSPACE}/.dockerignore ${GITHUB_WORKSPACE}/${repo}/.dockerignore
+              cd ${GITHUB_WORKSPACE}/${repo} || exit 1
+              git add .dockerignore
+              if git commit -m "Updated .dockerignore [skip ci]"; then
+                git push
+              fi
+              cd ${GITHUB_WORKSPACE} || exit 1
+              rm -rf ${GITHUB_WORKSPACE}/${repo}
+            fi
+          done < "${GITHUB_WORKSPACE}/tosync"
