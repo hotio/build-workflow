@@ -15,6 +15,7 @@ jobs:
         env:
           GITHUB_OWNER: ${{ github.repository_owner }}
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
           git config --global user.email "${GITHUB_OWNER}@users.noreply.github.com"
           git config --global user.name "${GITHUB_OWNER}"
@@ -30,6 +31,9 @@ jobs:
               git add .
               if git commit -m "Digest update"; then
                 git push
+                GIT_SHA=$(git log -n 1 --pretty=format:"%H")
+                json='{"embeds": [{"title": "Digest update","description": "Digest changes detected for ['${GITHUB_OWNER}'/'${repo}':'${branch}'](https://github.com/'${GITHUB_OWNER}'/'${repo}'/commit/'${GIT_SHA}').","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
+                curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
               fi
               cd ${GITHUB_WORKSPACE} || exit 1
               rm -rf ${GITHUB_WORKSPACE}/${repo}
