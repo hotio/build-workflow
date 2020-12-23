@@ -23,16 +23,18 @@ jobs:
           git config --global user.name "hotio"
 
           while IFS= read -r line; do
-            array=(${line})
-            repo=${array[0]}
-            branch=${array[1]}
-            git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
-            cp ${GITHUB_WORKSPACE}/build.yml ${GITHUB_WORKSPACE}/${repo}/.github/workflows/build.yml
-            cd ${GITHUB_WORKSPACE}/${repo} || exit 1
-            git add .github/workflows/build.yml
-            if git commit -m "Updated build.yml [skip ci]"; then
-              git push
+            if [[ -n ${line} ]]; then
+              array=(${line})
+              repo=${array[0]}
+              branch=${array[1]}
+              git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
+              cp ${GITHUB_WORKSPACE}/build.yml ${GITHUB_WORKSPACE}/${repo}/.github/workflows/build.yml
+              cd ${GITHUB_WORKSPACE}/${repo} || exit 1
+              git add .github/workflows/build.yml
+              if git commit -m "Updated build.yml [${{github.event.head_commit.message}}]"; then
+                git push
+              fi
+              cd ${GITHUB_WORKSPACE} || exit 1
+              rm -rf ${GITHUB_WORKSPACE}/${repo}
             fi
-            cd ${GITHUB_WORKSPACE} || exit 1
-            rm -rf ${GITHUB_WORKSPACE}/${repo}
           done < "${GITHUB_WORKSPACE}/tosync"
