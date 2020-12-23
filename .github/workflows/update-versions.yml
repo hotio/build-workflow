@@ -1,20 +1,17 @@
-name: sync-build.yml
+name: update-versions
 
 on:
-  push:
-    paths:
-      - 'build.yml'
-      - 'tosync'
-    branches:
-      - master
+  workflow_dispatch:
+  schedule:
+    - cron:  '15,45 * * * *'
 
 jobs:
-  sync:
+  update:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      - name: Sync build.yml
+      - name: Update versions
         env:
           GITHUB_OWNER: ${{ github.repository_owner }}
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
@@ -28,10 +25,10 @@ jobs:
               repo=${array[0]}
               branch=${array[1]}
               git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
-              cp ${GITHUB_WORKSPACE}/build.yml ${GITHUB_WORKSPACE}/${repo}/.github/workflows/build.yml
+              bash ${GITHUB_WORKSPACE}/update.sh && true
               cd ${GITHUB_WORKSPACE}/${repo} || exit 1
-              git add .github/workflows/build.yml
-              if git commit -m "Updated build.yml [${{github.event.head_commit.message}}]"; then
+              git add .
+              if git commit -m "Version update"; then
                 git push
               fi
               cd ${GITHUB_WORKSPACE} || exit 1
