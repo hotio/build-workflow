@@ -24,8 +24,8 @@ jobs:
               branch=master
               git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
               cd ${GITHUB_WORKSPACE}/${repo} || exit 1
-              rm -rf .github
-              rm .gitattributes
+              rm -rf .github && true
+              rm .gitattributes && true
               git add --all
               if git commit -m "Remove obsolete files"; then
                 git push
