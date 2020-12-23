@@ -30,7 +30,7 @@ jobs:
             cp ${GITHUB_WORKSPACE}/build.yml ${GITHUB_WORKSPACE}/${repo}/.github/workflows/build.yml
             cd ${GITHUB_WORKSPACE}/${repo} || exit 1
             git add .github/workflows/build.yml
-            if git commit -m "Updated build.yml"; then
+            if git commit -m "Updated build.yml [skip ci]"; then
               git push
             fi
             cd ${GITHUB_WORKSPACE} || exit 1
