@@ -27,7 +27,10 @@ jobs:
               branch=${array[1]}
               git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
               cd ${GITHUB_WORKSPACE}/${repo} || exit 1
-              bash ./update.sh && true
+              if ! bash ./update.sh; then
+                json='{"embeds": [{"title": "Version update","description": "Something went wrong detecting changes for **['${GITHUB_OWNER}'/'${repo}':'${branch}'](https://github.com/'${GITHUB_REPOSITORY}'/actions/runs/'${GITHUB_RUN_ID}')**.","color": 15158332,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
+                curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
+              fi
               git add .
               if git commit -m "Version update"; then
                 git push
