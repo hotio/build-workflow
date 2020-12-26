@@ -37,6 +37,9 @@ lidarr          pr
 mergerfs        release
 mergerfs        nightly
 
+movearr         release
+movearr         nightly
+
 mylar3          release
 mylar3          nightly
 
