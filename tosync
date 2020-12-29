@@ -61,6 +61,7 @@ plexarr         release
 plexarr         nightly
 
 qbittorrent     release
+qbittorrent     testing
 
 radarr          release
 radarr          testing
