@@ -60,6 +60,8 @@ plex            release
 plexarr         release
 plexarr         nightly
 
+qbittorrent     release
+
 radarr          release
 radarr          testing
 radarr          nightly
