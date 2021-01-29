@@ -21,6 +21,9 @@ cloudflareddns  release
 crop            release
 crop            nightly
 
+duplicacy       release
+duplicacy       testing
+
 hdidle          release
 
 jackett         release
