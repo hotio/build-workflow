@@ -95,6 +95,8 @@ sonarr          release
 sonarr          testing
 sonarr          nightly
 
+stash           release
+
 tautulli        release
 tautulli        testing
 
