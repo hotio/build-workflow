@@ -30,6 +30,7 @@ jackett         release
 jackett         testing
 
 jellyfin        release
+jellyfin        testing
 jellyfin        nightly
 
 lidarr          release
@@ -96,6 +97,7 @@ sonarr          testing
 sonarr          nightly
 
 stash           release
+stash           nightly
 
 tautulli        release
 tautulli        testing
