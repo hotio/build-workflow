@@ -19,6 +19,7 @@ borg            testing
 cloudflareddns  release
 
 conreq          release
+conreq          nightly
 
 crop            release
 crop            nightly
