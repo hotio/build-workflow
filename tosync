@@ -88,6 +88,8 @@ requestrr       release
 
 restic          release
 
+rflood          release
+
 sabnzbd         release
 sabnzbd         testing
 sabnzbd         nightly
