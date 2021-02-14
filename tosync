@@ -70,6 +70,8 @@ plexarr         nightly
 qbittorrent     release
 qbittorrent     testing
 
+qflood          release
+
 radarr          release
 radarr          testing
 radarr          nightly
