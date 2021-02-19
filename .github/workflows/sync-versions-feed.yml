@@ -8,11 +8,11 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    shell: bash
     steps:
       - uses: actions/checkout@v2
 
       - name: Update Discord Feed
+        shell: bash
         run: |
           # rm ./output.json
           # rm ./discord.json
