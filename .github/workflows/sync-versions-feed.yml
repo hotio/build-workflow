@@ -43,6 +43,6 @@ jobs:
                   #echo "$discord" | jq . >> ./discord.json
                   #curl -fsSL -H "Content-Type: multipart/form-data" -F "payload_json=$(echo "${payload}" | jq .)" "https://enfjd1xev6ay.x.pipedream.net/" > /dev/null
                   curl -fsSL -H "Content-Type: multipart/form-data" -F "payload_json=$(echo "${discord}" | jq .)" "https://discord.com/api/webhooks/812377795559817227/1UHK-AlcH5AeHRtydab5U2NJVbf-xWIoaZxBWbQidL9SD4p_A_qIfVqNBi47bWPbi3TN" > /dev/null
-                  sleep 3
               fi
+              sleep 3
           done < "tosync"
