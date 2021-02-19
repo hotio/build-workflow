@@ -23,9 +23,9 @@ jobs:
                   branch=${array[1]}
                   version=$(curl -fsSL -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" "https://raw.githubusercontent.com/hotio/$repo/$branch/VERSION.json" | jq -r .version)
                   [[ $version == null ]] && version=""
-                  workflow=$(curl -fL -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/hotio/$repo/actions/runs" | jq -r '[.workflow_runs[] | select(.head_branch == "'"$branch"'")][0]')
-                  conclusion=$(jq -r .conclusion <<< "$workflow")
-                  status="❗" && [[ $conclusion == success ]] && status="✅"
+                  #workflow=$(curl -fsSL -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/hotio/$repo/actions/runs" | jq -r '[.workflow_runs[] | select(.head_branch == "'"$branch"'")][0]')
+                  #conclusion=$(jq -r .conclusion <<< "$workflow")
+                  #status="❗" && [[ $conclusion == success ]] && status="✅"
                   echo "$repo:$branch - $conclusion"
                   if [[ $current_repo != "$repo" ]] && [[ -n $version ]]; then
                       current_repo=$repo
@@ -42,7 +42,7 @@ jobs:
                   #echo "$payload" | jq . >> ./output.json
                   #echo "$discord" | jq . >> ./discord.json
                   #curl -fsSL -H "Content-Type: multipart/form-data" -F "payload_json=$(echo "${payload}" | jq .)" "https://enfjd1xev6ay.x.pipedream.net/" > /dev/null
-                  curl -fsSL -H "Content-Type: multipart/form-data" -F "payload_json=$(echo "${discord}" | jq .)" "https://discord.com/api/webhooks/812377795559817227/1UHK-AlcH5AeHRtydab5U2NJVbf-xWIoaZxBWbQidL9SD4p_A_qIfVqNBi47bWPbi3TN" > /dev/null
-                  sleep 10
+                  curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "payload_json=$(echo "${discord}" | jq .)" "https://discord.com/api/webhooks/812377795559817227/1UHK-AlcH5AeHRtydab5U2NJVbf-xWIoaZxBWbQidL9SD4p_A_qIfVqNBi47bWPbi3TN" > /dev/null
+                  sleep 1
               fi
           done < "tosync"
