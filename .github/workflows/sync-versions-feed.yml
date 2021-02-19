@@ -1,0 +1,47 @@
+name: sync-versions-feed
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '*/10 * * * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    shell: bash
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Update Discord Feed
+        run: |
+          # rm ./output.json
+          # rm ./discord.json
+          while IFS= read -r line; do
+              if [[ -n ${line} ]]; then
+                  array=(${line})
+                  repo=${array[0]}
+                  branch=${array[1]}
+                  version=$(curl -fsSL "https://raw.githubusercontent.com/hotio/$repo/$branch/VERSION.json" | jq -r .version)
+                  [[ $version == null ]] && version=""
+                  workflow=$(curl -fsSL -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/hotio/$repo/actions/runs" | jq -r '[.workflow_runs[] | select(.head_branch == "'"$branch"'")][0]')
+                  conclusion=$(jq -r .conclusion <<< "$workflow")
+                  status="❗" && [[ $conclusion == success ]] && status="✅"
+                  if [[ $current_repo != "$repo" ]] && [[ -n $version ]]; then
+                      current_repo=$repo
+                      payload='{"image": "hotio/'$repo'","tags": [{"name": "'$branch'", "version": "'$version'"}'
+                      discord='{"content": "**hotio/'$repo'**\n```\n'$status' '$branch': '$version''
+                  elif [[ -n $version ]]; then
+                      payload+=',{"name": "'$branch'", "version": "'$version'"}'
+                      discord+='\n'$status' '$branch': '$version''
+                  fi
+              fi
+              if [[ -z ${line} ]] && [[ -n $version ]]; then
+                  payload+=']}'
+                  discord+='\n```"}'
+                  #echo "$payload" | jq . >> ./output.json
+                  #echo "$discord" | jq . >> ./discord.json
+                  #curl -fsSL -H "Content-Type: multipart/form-data" -F "payload_json=$(echo "${payload}" | jq .)" "https://enfjd1xev6ay.x.pipedream.net/" > /dev/null
+                  curl -fsSL -H "Content-Type: multipart/form-data" -F "payload_json=$(echo "${discord}" | jq .)" "https://discord.com/api/webhooks/812377795559817227/1UHK-AlcH5AeHRtydab5U2NJVbf-xWIoaZxBWbQidL9SD4p_A_qIfVqNBi47bWPbi3TN" > /dev/null
+                  sleep 2
+              fi
+          done < "tosync"
