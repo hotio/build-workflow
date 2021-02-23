@@ -29,14 +29,14 @@ jobs:
               cd ${GITHUB_WORKSPACE}/${repo} || exit 1
               if ! bash ./update.sh; then
                 json='{"embeds": [{"title": "Version update","description": "Something went wrong detecting changes for **['${GITHUB_OWNER}'/'${repo}':'${branch}'](https://github.com/'${GITHUB_REPOSITORY}'/actions/runs/'${GITHUB_RUN_ID}')**.","color": 15158332,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
-                curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
+                [[ -z ${array[2]} ]] && curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
               fi
               git add .
               if git commit -m "Version update"; then
                 git push
                 GIT_SHA=$(git log -n 1 --pretty=format:"%H")
                 json='{"embeds": [{"title": "Version update","description": "Version changes detected for **['${GITHUB_OWNER}'/'${repo}':'${branch}'](https://github.com/'${GITHUB_OWNER}'/'${repo}'/commit/'${GIT_SHA}')**.","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
-                curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
+                [[ -z ${array[2]} ]] && curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
               fi
               cd ${GITHUB_WORKSPACE} || exit 1
               rm -rf ${GITHUB_WORKSPACE}/${repo}
