@@ -1,0 +1,37 @@
+name: update-stats
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '15,45 * * * *'
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update statistics
+        env:
+          GITHUB_OWNER: ${{ github.repository_owner }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          git config --global user.email "${GITHUB_OWNER}@users.noreply.github.com"
+          git config --global user.name "${GITHUB_OWNER}"
+          json=$(curl -fsSL "https://hub.docker.com/v2/repositories/${GITHUB_OWNER}/?page_size=300")
+          images=$(jq -r '.results|.[]|.name' <<< "${json}")
+          while IFS= read -r image; do
+            git clone -b "master" "https://${GITHUB_TOKEN}@github.com/${image}.git" "${GITHUB_WORKSPACE}/${image}"
+            cd "${GITHUB_WORKSPACE}/${image}" || exit 1
+            if [[ -f ./tags.json ]]; then
+              pulls=$(jq -r '.results|.[]|select(.name == "'"${image}"'")|.pull_count' <<< "${json}")
+              stars=$(jq -r '.results|.[]|select(.name == "'"${image}"'")|.star_count' <<< "${json}")
+              echo "${image} - ${pulls} - ${stars}"
+              tags_json=$(cat ./tags.json)
+              jq '.pulls = '"${pulls}"' | .stars = '"${stars}" <<< "${tags_json}" > ./tags.json
+              git add .
+              if git commit -m "Updated statistics"; then
+                #git push
+                cat ./tags.json
+              fi
+            fi
+          done <<< "${images}"
