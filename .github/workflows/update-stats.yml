@@ -30,8 +30,7 @@ jobs:
               jq '.pulls = '"${pulls}"' | .stars = '"${stars}" <<< "${tags_json}" > ./tags.json
               git add .
               if git commit -m "Updated statistics"; then
-                #git push
-                cat ./tags.json
+                git push
               fi
             fi
           done <<< "${images}"
