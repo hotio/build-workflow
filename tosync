@@ -16,6 +16,8 @@ bazarr          nightly
 borg            release
 borg            testing
 
+caddy           release
+
 cloudflareddns  release
 
 conreq          release
