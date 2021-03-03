@@ -11,6 +11,7 @@ autoscan        release
 autoscan        nightly
 
 bazarr          release
+bazarr          testing
 bazarr          nightly
 
 borg            release
