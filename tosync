@@ -108,6 +108,7 @@ scrutiny        nightly
 sonarr          release
 sonarr          testing
 sonarr          nightly
+sonarr          v2
 
 stash           release
 stash           nightly
