@@ -109,7 +109,6 @@ scrutiny        release
 scrutiny        nightly
 
 sonarr          release
-sonarr          testing
 sonarr          nightly
 sonarr          v2
 
