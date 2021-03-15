@@ -2,9 +2,6 @@ base            bionic
 base            focal
 base            alpine
 
-mono            bionic
-mono            focal
-
 apprise         release
 
 autoscan        release
