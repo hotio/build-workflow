@@ -73,7 +73,6 @@ plexarr         nightly
 prowlarr        nightly false
 prowlarr        pr      false
 
-qbittorrent     release
 qbittorrent     testing
 
 qflood          release
