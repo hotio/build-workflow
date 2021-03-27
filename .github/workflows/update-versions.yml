@@ -3,7 +3,7 @@ name: update-versions
 on:
   workflow_dispatch:
   schedule:
-    - cron:  '*/5 * * * *'
+    - cron:  '*/15 * * * *'
 
 jobs:
   update:
