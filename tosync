@@ -61,9 +61,9 @@ ombi            testing
 overseerr       release
 overseerr       nightly
 
-petio           release false
-petio           testing false
-petio           nightly false
+petio           release
+petio           testing
+petio           nightly
 
 plex            release
 
