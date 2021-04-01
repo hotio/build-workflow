@@ -33,7 +33,7 @@ jackett         testing
 
 jellyfin        release
 jellyfin        testing
-jellyfin        nightly
+jellyfin        nightly false
 
 lidarr          release
 lidarr          testing
