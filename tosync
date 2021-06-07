@@ -71,9 +71,9 @@ plexarr         release
 plexarr         nightly
 
 prowlarr        release false
-prowlarr        testing false
-prowlarr        nightly false
-prowlarr        pr      false
+prowlarr        testing
+prowlarr        nightly
+prowlarr        pr
 
 qbittorrent     release
 qbittorrent     testing
