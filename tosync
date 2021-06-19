@@ -1,6 +1,7 @@
 base            bionic
 base            focal
 base            alpine
+base            alpine3.13
 
 apprise         release
 
