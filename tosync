@@ -24,6 +24,8 @@ conreq          nightly
 crop            release
 crop            nightly
 
+doplarr         release
+
 duplicacy       release
 duplicacy       testing
 
