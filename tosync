@@ -35,7 +35,7 @@ jackett         release
 jackett         testing
 
 jellyfin        release
-jellyfin        testing
+jellyfin        testing false
 jellyfin        nightly false
 
 lidarr          release
