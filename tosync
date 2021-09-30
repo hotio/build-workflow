@@ -113,6 +113,7 @@ scrutiny        nightly
 sonarr          release
 sonarr          nightly
 sonarr          v2
+sonarr          musl
 
 stash           release
 stash           nightly
