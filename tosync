@@ -85,7 +85,6 @@ qflood          release
 radarr          release
 radarr          testing
 radarr          nightly
-radarr          musl
 radarr          pr
 
 rar2fs          release
