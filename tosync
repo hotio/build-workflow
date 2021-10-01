@@ -73,7 +73,6 @@ plex            release
 plexarr         release
 plexarr         nightly
 
-prowlarr        release false
 prowlarr        testing
 prowlarr        nightly
 prowlarr        pr
