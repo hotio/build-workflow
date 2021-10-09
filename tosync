@@ -84,6 +84,8 @@ radarr          release
 radarr          testing
 radarr          nightly
 radarr          pr
+radarr          sonarr
+radarr          sonarr-tmdb
 
 rar2fs          release
 
