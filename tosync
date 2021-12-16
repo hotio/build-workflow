@@ -76,7 +76,6 @@ prowlarr        nightly
 prowlarr        pr
 
 qbittorrent     release
-qbittorrent     alpine
 
 qflood          release
 
