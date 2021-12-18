@@ -75,6 +75,9 @@ prowlarr        testing
 prowlarr        nightly
 prowlarr        pr
 
+qbitmanage      release
+qbitmanage      nightly
+
 qbittorrent     release
 
 qflood          release
