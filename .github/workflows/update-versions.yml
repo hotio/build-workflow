@@ -20,25 +20,23 @@ jobs:
           git config --global user.email "${GITHUB_OWNER}@users.noreply.github.com"
           git config --global user.name "${GITHUB_OWNER}"
 
-          while IFS= read -r line; do
-            if [[ -n ${line} ]]; then
-              array=(${line})
-              repo=${array[0]}
-              branch=${array[1]}
-              git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
-              cd ${GITHUB_WORKSPACE}/${repo} || exit 1
-              if ! bash ./update.sh; then
-                json='{"embeds": [{"title": "Version update","description": "Something went wrong detecting changes for **['${GITHUB_OWNER}'/'${repo}':'${branch}'](https://github.com/'${GITHUB_REPOSITORY}'/actions/runs/'${GITHUB_RUN_ID}')**.","color": 15158332,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
-                [[ -z ${array[2]} ]] && curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
-              fi
-              git add .
-              if git commit -m "Version update"; then
-                git push
-                GIT_SHA=$(git log -n 1 --pretty=format:"%H")
-                json='{"embeds": [{"title": "Version update","description": "Version changes detected for **['${GITHUB_OWNER}'/'${repo}':'${branch}'](https://github.com/'${GITHUB_OWNER}'/'${repo}'/commit/'${GIT_SHA}')**.","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
-                [[ -z ${array[2]} ]] && curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
-              fi
-              cd ${GITHUB_WORKSPACE} || exit 1
-              rm -rf ${GITHUB_WORKSPACE}/${repo}
-            fi
-          done < "${GITHUB_WORKSPACE}/tosync"
+          while IFS= read -r repo; do
+              while IFS= read -r branch; do
+                  echo "Updating ${repo}/${branch}..."
+                  git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
+                  cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
+                  if ! bash ./update.sh; then
+                      json='{"embeds": [{"title": "Version update","description": "Something went wrong detecting changes for **['${GITHUB_OWNER}'/'${repo}':'${branch}'](https://github.com/'${GITHUB_REPOSITORY}'/actions/runs/'${GITHUB_RUN_ID}')**.","color": 15158332,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
+                      curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
+                  fi
+                  git add .
+                  if git commit -m "Version update"; then
+                      git push
+                      GIT_SHA=$(git log -n 1 --pretty=format:"%H")
+                      json='{"embeds": [{"title": "Version update","description": "Version changes detected for **['${GITHUB_OWNER}'/'${repo}':'${branch}'](https://github.com/'${GITHUB_OWNER}'/'${repo}'/commit/'${GIT_SHA}')**.","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
+                      curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
+                  fi
+                  cd "${GITHUB_WORKSPACE}" || exit 1
+                  rm -rf "${GITHUB_WORKSPACE:?}/${repo}"
+              done < <(curl -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -fsSL "https://api.github.com/repos/${GITHUB_OWNER}/${repo}/branches" | jq -r '.[] | select(.name!="master") | .name')
+          done < <(curl -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -fsSL "https://api.github.com/users/${GITHUB_OWNER}/repos?per_page=1000" | jq -r '.[] | select(.topics[]=="docker-image") | .name')
