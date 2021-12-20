@@ -46,5 +46,5 @@ jobs:
           json=$(curl -fsSL "https://hub.docker.com/v2/repositories/${DOCKER_USER}/?page_size=300")
           images=$(jq -r '.results|.[]|.name' <<< "${json}")
           while IFS= read -r image; do
-            jq -nc --arg full_description "$(cat "README.md")" --argjson description "Please visit https://hotio.dev for documentation" '{"registry": "registry-1.docker.io", $full_description, $description} | del(.[] | nulls)' | curl -sL  -X PATCH  -d @-  -o /tmp/out -H "Content-Type: application/json" -H "Authorization: JWT ${TOKEN}" -w "%{http_code}" "https://hub.docker.com/v2/repositories/${DOCKER_USER}/${image}/"
+            jq -nc --arg full_description "$(cat "README.md")" --argjson description "\"Please visit https://hotio.dev for documentation\"" '{"registry": "registry-1.docker.io", $full_description, $description} | del(.[] | nulls)' | curl -sL  -X PATCH  -d @-  -o /tmp/out -H "Content-Type: application/json" -H "Authorization: JWT ${TOKEN}" -w "%{http_code}" "https://hub.docker.com/v2/repositories/${DOCKER_USER}/${image}/"
           done <<< "${images}"
