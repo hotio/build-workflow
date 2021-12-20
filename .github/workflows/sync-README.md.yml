@@ -40,9 +40,9 @@ jobs:
       - name: Update Docker Hub
         env:
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
-          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+          DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
         run: |
-          TOKEN=$(jq -nc --arg username "${DOCKER_USER}" --arg password "${DOCKER_TOKEN}" '{$username, $password}' | curl -sH "Content-Type: application/json"  -d @-  "https://hub.docker.com/v2/users/login" | jq -r 'select(.token != null) | .token')
+          TOKEN=$(jq -nc --arg username "${DOCKER_USER}" --arg password "${DOCKER_PASS}" '{$username, $password}' | curl -sH "Content-Type: application/json"  -d @-  "https://hub.docker.com/v2/users/login" | jq -r 'select(.token != null) | .token')
           json=$(curl -fsSL "https://hub.docker.com/v2/repositories/${DOCKER_USER}/?page_size=300")
           images=$(jq -r '.results|.[]|.name' <<< "${json}")
           while IFS= read -r image; do
