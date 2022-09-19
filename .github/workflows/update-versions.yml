@@ -67,6 +67,22 @@ jobs:
             fi
             cd "${GITHUB_WORKSPACE}" || exit 1
             rm -rf "${GITHUB_WORKSPACE:?}/${REPO}"
+          else
+            while IFS= read -r branch; do
+                echo "Updating ${REPO}/${branch}..."
+                git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${REPO}.git"
+                cd "${GITHUB_WORKSPACE}/${REPO}" || exit 1
+                [[ -f update-versions.sh ]] && bash ./update-versions.sh
+                git add .
+                if git commit -m "Version update"; then
+                  git push
+                  GIT_SHA=$(git log -n 1 --pretty=format:"%H")
+                  json='{"embeds": [{"title": "Version update","description": "Version changes detected for **['${GITHUB_OWNER}'/'${REPO}':'${branch}'](https://github.com/'${GITHUB_OWNER}'/'${REPO}'/commit/'${GIT_SHA}')**.","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
+                  curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
+                fi
+                cd "${GITHUB_WORKSPACE}" || exit 1
+                rm -rf "${GITHUB_WORKSPACE:?}/${REPO}"
+            done < <(curl -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -fsSL "https://api.github.com/repos/${GITHUB_OWNER}/${REPO}/branches" | jq -r '.[] | select(.name!="master") | .name')
           fi
 
       - uses: gautamkrishnar/keepalive-workflow@v1
