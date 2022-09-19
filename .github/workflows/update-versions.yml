@@ -53,18 +53,20 @@ jobs:
           git config --global user.email "${GITHUB_OWNER}@users.noreply.github.com"
           git config --global user.name "${GITHUB_OWNER}"
 
-          echo "Updating ${REPO}/${BRANCH}..."
-          git clone -b "${BRANCH}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${REPO}.git"
-          cd "${GITHUB_WORKSPACE}/${REPO}" || exit 1
-          [[ -f update-versions.sh ]] && bash ./update-versions.sh
-          git add .
-          if git commit -m "Version update"; then
-            git push
-            GIT_SHA=$(git log -n 1 --pretty=format:"%H")
-            json='{"embeds": [{"title": "Version update","description": "Version changes detected for **['${GITHUB_OWNER}'/'${REPO}':'${BRANCH}'](https://github.com/'${GITHUB_OWNER}'/'${REPO}'/commit/'${GIT_SHA}')**.","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
-            curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
+          if [[ ${BRANCH} != "" ]]; then
+            echo "Updating ${REPO}/${BRANCH}..."
+            git clone -b "${BRANCH}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${REPO}.git"
+            cd "${GITHUB_WORKSPACE}/${REPO}" || exit 1
+            [[ -f update-versions.sh ]] && bash ./update-versions.sh
+            git add .
+            if git commit -m "Version update"; then
+              git push
+              GIT_SHA=$(git log -n 1 --pretty=format:"%H")
+              json='{"embeds": [{"title": "Version update","description": "Version changes detected for **['${GITHUB_OWNER}'/'${REPO}':'${BRANCH}'](https://github.com/'${GITHUB_OWNER}'/'${REPO}'/commit/'${GIT_SHA}')**.","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
+              curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
+            fi
+            cd "${GITHUB_WORKSPACE}" || exit 1
+            rm -rf "${GITHUB_WORKSPACE:?}/${REPO}"
           fi
-          cd "${GITHUB_WORKSPACE}" || exit 1
-          rm -rf "${GITHUB_WORKSPACE:?}/${REPO}"
 
       - uses: gautamkrishnar/keepalive-workflow@v1
