@@ -26,7 +26,8 @@ jobs:
               while IFS= read -r branch; do
                   echo "Updating ${repo}/${branch}..."
                   git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
-                  cp -a "${GITHUB_WORKSPACE}/toSync/." "${GITHUB_WORKSPACE}/${repo}/"
+                  cp -a "${GITHUB_WORKSPACE}/file-templates/." "${GITHUB_WORKSPACE}/${repo}/"
+                  cp -a "${GITHUB_WORKSPACE}/workflow-templates/." "${GITHUB_WORKSPACE}/${repo}/.github/workflows/"
                   cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
                   git add .
                   if git commit -m "Updated some files [skip ci]"; then
