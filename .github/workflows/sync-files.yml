@@ -1,10 +1,10 @@
-name: sync-build.yml
+name: sync-files
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - 'build.yml'
+      - 'toSync/**'
     branches:
       - master
 
@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Sync build.yml
+      - name: Sync files
         env:
           GITHUB_OWNER: ${{ github.repository_owner }}
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
@@ -26,10 +26,10 @@ jobs:
               while IFS= read -r branch; do
                   echo "Updating ${repo}/${branch}..."
                   git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
-                  cp "${GITHUB_WORKSPACE}/build.yml" "${GITHUB_WORKSPACE}/${repo}/.github/workflows/build.yml"
+                  cp -a "${GITHUB_WORKSPACE}/toSync/." "${GITHUB_WORKSPACE}/${repo}/"
                   cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
-                  git add .github/workflows/build.yml
-                  if git commit -m "Updated build.yml [skip ci]"; then
+                  git add .
+                  if git commit -m "Updated some files [skip ci]"; then
                       git push
                   fi
                   cd "${GITHUB_WORKSPACE}" || exit 1
