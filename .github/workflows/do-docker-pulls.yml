@@ -10,7 +10,7 @@ jobs:
       - name: Do docker pulls
         env:
           GITHUB_OWNER: ${{ github.repository_owner }}
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           while IFS= read -r repo; do
               while IFS= read -r branch; do
