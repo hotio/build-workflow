@@ -1,0 +1,13 @@
+name: keep-alive
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 0 * * *'
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep workflow alive
+        uses: gautamkrishnar/keepalive-workflow@v1
