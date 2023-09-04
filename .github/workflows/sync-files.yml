@@ -35,11 +35,10 @@ jobs:
               if [[ ${branch} == "master" ]]; then
                 cp "${GITHUB_WORKSPACE}/file-templates/LICENSE" "${GITHUB_WORKSPACE}/${repo}/"
                 cp "${GITHUB_WORKSPACE}/file-templates/README.md" "${GITHUB_WORKSPACE}/${repo}/"
-                cp -a "${GITHUB_WORKSPACE}/workflow-templates/." "${GITHUB_WORKSPACE}/${repo}/.github/workflows/"
               else
-                cp -a "${GITHUB_WORKSPACE}/file-templates/." "${GITHUB_WORKSPACE}/${repo}/"
-                cp -a "${GITHUB_WORKSPACE}/workflow-templates/." "${GITHUB_WORKSPACE}/${repo}/.github/workflows/"
+                cp -a "${GITHUB_WORKSPACE}/file-templates/" "${GITHUB_WORKSPACE}/${repo}/"
               fi
+              cp -a "${GITHUB_WORKSPACE}/workflow-templates/" "${GITHUB_WORKSPACE}/${repo}/"
               cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
               git add -A
               if git commit -m "Updated some files [skip ci]"; then
