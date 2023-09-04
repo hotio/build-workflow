@@ -236,63 +236,41 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create manifests - Attempt 1
-        continue-on-error: true
-        id: manifest_attempt1
+      - name: Create manifests
+        uses: nick-fields/retry@v2
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
-        run: |
-          IMAGE=${{ matrix.registry }}/${GITHUB_REPOSITORY}
-          TAG=${GITHUB_REF//refs\/heads\//}
-          SOURCE=${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}
-          VERSION=${{ needs.build.outputs.version }}
-          BRANCH=${{ needs.build.outputs.branch }}
-          [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
-          [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
-          docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64}
-          docker manifest push   ${IMAGE}:${TAG}${BRANCH}
-          docker manifest create ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} ${AMD64} ${ARM64}
-          docker manifest push   ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-}
-          docker manifest create ${IMAGE}:${TAG}-${GITHUB_SHA:0:7} ${AMD64} ${ARM64}
-          docker manifest push   ${IMAGE}:${TAG}-${GITHUB_SHA:0:7}
-          IS_LATEST=$(jq -r '.latest // empty' < VERSION.json)
-          if [[ ${IS_LATEST} == true ]]; then
-            docker manifest create ${IMAGE}:latest ${AMD64} ${ARM64}
-            docker manifest push   ${IMAGE}:latest
-          fi
-
-      - name: Sleep
-        if: (steps.manifest_attempt1.outcome == 'failure')
-        run: |
-          sleep 30
-
-      - name: Create manifests - Attempt 2
-        if: (steps.manifest_attempt1.outcome == 'failure')
-        env:
-          DOCKER_CLI_EXPERIMENTAL: enabled
-        run: |
-          IMAGE=${{ matrix.registry }}/${GITHUB_REPOSITORY}
-          TAG=${GITHUB_REF//refs\/heads\//}
-          SOURCE=${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}
-          VERSION=${{ needs.build.outputs.version }}
-          BRANCH=${{ needs.build.outputs.branch }}
-          [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
-          [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
-          docker manifest rm     ${IMAGE}:${TAG}${BRANCH} || true
-          docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64}
-          docker manifest push   ${IMAGE}:${TAG}${BRANCH}
-          docker manifest rm     ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} || true
-          docker manifest create ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} ${AMD64} ${ARM64}
-          docker manifest push   ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-}
-          docker manifest rm     ${IMAGE}:${TAG}-${GITHUB_SHA:0:7} || true
-          docker manifest create ${IMAGE}:${TAG}-${GITHUB_SHA:0:7} ${AMD64} ${ARM64}
-          docker manifest push   ${IMAGE}:${TAG}-${GITHUB_SHA:0:7}
-          IS_LATEST=$(jq -r '.latest // empty' < VERSION.json)
-          if [[ ${IS_LATEST} == true ]]; then
-            docker manifest rm     ${IMAGE}:latest || true
-            docker manifest create ${IMAGE}:latest ${AMD64} ${ARM64}
-            docker manifest push   ${IMAGE}:latest
-          fi
+          IMAGE: ${{ matrix.registry }}/${GITHUB_REPOSITORY}
+          TAG: ${GITHUB_REF//refs\/heads\//}
+          SOURCE: ${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}
+          VERSION: ${{ needs.build.outputs.version }}
+          BRANCH: ${{ needs.build.outputs.branch }}
+        with:
+          max_attempts: 3
+          retry_on: error
+          timeout_seconds: 20
+          command: |
+            [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
+            [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
+            docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64}
+            docker manifest push   ${IMAGE}:${TAG}${BRANCH}
+            docker manifest create ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} ${AMD64} ${ARM64}
+            docker manifest push   ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-}
+            docker manifest create ${IMAGE}:${TAG}-${GITHUB_SHA:0:7} ${AMD64} ${ARM64}
+            docker manifest push   ${IMAGE}:${TAG}-${GITHUB_SHA:0:7}
+            IS_LATEST=$(jq -r '.latest // empty' < VERSION.json)
+            if [[ ${IS_LATEST} == true ]]; then
+              docker manifest create ${IMAGE}:latest ${AMD64} ${ARM64}
+              docker manifest push   ${IMAGE}:latest
+            fi
+          on_retry_command: |
+            docker manifest rm     ${IMAGE}:${TAG}${BRANCH} || true
+            docker manifest rm     ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} || true
+            docker manifest rm     ${IMAGE}:${TAG}-${GITHUB_SHA:0:7} || true
+            IS_LATEST=$(jq -r '.latest // empty' < VERSION.json)
+            if [[ ${IS_LATEST} == true ]]; then
+              docker manifest rm     ${IMAGE}:latest || true
+            fi
 
   tags:
     runs-on: ubuntu-22.04
