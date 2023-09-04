@@ -40,8 +40,8 @@ jobs:
               fi
               mkdir -p "${GITHUB_WORKSPACE}/${repo}/.github/workflows"
               cp -a "${GITHUB_WORKSPACE}/workflow-templates/." "${GITHUB_WORKSPACE}/${repo}/.github/workflows"
-              rm -rf "${GITHUB_WORKSPACE}/workflow-templates"
-              rm -rf "${GITHUB_WORKSPACE}/file-templates"
+              rm -rf "${GITHUB_WORKSPACE}/${repo}/workflow-templates"
+              rm -rf "${GITHUB_WORKSPACE}/${repo}/file-templates"
               cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
               git add -A
               if git commit -m "Updated some files [skip ci]"; then
