@@ -38,7 +38,8 @@ jobs:
               else
                 cp -a "${GITHUB_WORKSPACE}/file-templates/." "${GITHUB_WORKSPACE}/${repo}/"
               fi
-              cp -a "${GITHUB_WORKSPACE}/workflow-templates/." "${GITHUB_WORKSPACE}/${repo}.github/workflows"
+              mkdir -p "${GITHUB_WORKSPACE}/${repo}/.github/workflows"
+              cp -a "${GITHUB_WORKSPACE}/workflow-templates/." "${GITHUB_WORKSPACE}/${repo}/.github/workflows"
               rm -rf "${GITHUB_WORKSPACE}/workflow-templates"
               rm -rf "${GITHUB_WORKSPACE}/file-templates"
               cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
