@@ -36,9 +36,11 @@ jobs:
                 cp "${GITHUB_WORKSPACE}/file-templates/LICENSE" "${GITHUB_WORKSPACE}/${repo}/"
                 cp "${GITHUB_WORKSPACE}/file-templates/README.md" "${GITHUB_WORKSPACE}/${repo}/"
               else
-                cp -a "${GITHUB_WORKSPACE}/file-templates/" "${GITHUB_WORKSPACE}/${repo}/"
+                cp -a "${GITHUB_WORKSPACE}/file-templates/." "${GITHUB_WORKSPACE}/${repo}/"
               fi
-              cp -a "${GITHUB_WORKSPACE}/workflow-templates/" "${GITHUB_WORKSPACE}/${repo}/"
+              cp -a "${GITHUB_WORKSPACE}/workflow-templates/." "${GITHUB_WORKSPACE}/${repo}/"
+              rm -rf "${GITHUB_WORKSPACE}/workflow-templates"
+              rm -rf "${GITHUB_WORKSPACE}/file-templates"
               cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
               git add -A
               if git commit -m "Updated some files [skip ci]"; then
