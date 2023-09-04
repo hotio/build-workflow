@@ -2,12 +2,6 @@ name: sync-files
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'file-templates/**'
-      - 'workflow-templates/**'
-    branches:
-      - master
 
 jobs:
   sync:
@@ -39,7 +33,6 @@ jobs:
                 cp -a "${GITHUB_WORKSPACE}/file-templates/." "${GITHUB_WORKSPACE}/${repo}/"
               fi
               cp -a "${GITHUB_WORKSPACE}/workflow-templates/." "${GITHUB_WORKSPACE}/${repo}/"
-              rm -rf "${GITHUB_WORKSPACE}/${repo}/.github/workflows/build.yml"
               cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
               git add -A
               if git commit -m "Updated some files [skip ci]"; then
