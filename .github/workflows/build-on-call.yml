@@ -27,7 +27,6 @@ jobs:
     outputs:
       version: ${{ steps.prep.outputs.version }}
       branch: ${{ steps.prep.outputs.branch }}
-      commit_message: ${{ steps.prep.outputs.commit_message }}
       changelog: ${{ steps.prep.outputs.changelog }}
     steps:
       - name: Checkout
@@ -72,7 +71,6 @@ jobs:
         run: |
           ARCHITECTURE=${{ matrix.architecture }}
           echo "changelog=$(jq -r '.changelog' < VERSION.json)" >> $GITHUB_OUTPUT
-          echo "commit_message=${{ github.event.head_commit.message }}" >> $GITHUB_OUTPUT
           echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
           echo "title=${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}" >> $GITHUB_OUTPUT
           echo "revision=${GITHUB_SHA}" >> $GITHUB_OUTPUT
@@ -324,7 +322,7 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           VERSION: ${{ needs.build.outputs.version }}
           BRANCH: ${{ needs.build.outputs.branch }}
-          COMMIT_MESSAGE: ${{ needs.build.outputs.commit_message }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           CHANGELOG: ${{ needs.build.outputs.changelog }}
           STATUS: ${{ needs.publish.result }}
         shell: bash
@@ -335,6 +333,9 @@ jobs:
           fi
           if [[ -f "screenshot.png" ]]; then
             IMAGE_JSON=',"image": {"url": "attachment://screenshot.png"}'
+          fi
+          if [[ -z ${COMMIT_MESSAGE} ]]; then
+            COMMIT_MESSAGE="---"
           fi
           json='{
             "embeds": [
