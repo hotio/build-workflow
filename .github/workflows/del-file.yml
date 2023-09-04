@@ -26,7 +26,7 @@ jobs:
               cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
               rm -f TAGS.json
               git add .
-              if git commit -m "Version update"; then
+              if git commit -m "Deleted file"; then
                 git push
               fi
               cd "${GITHUB_WORKSPACE}" || exit 1
