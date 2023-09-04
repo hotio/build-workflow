@@ -24,12 +24,12 @@ jobs:
               echo "Updating ${repo}/${branch}..."
               git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
               cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
-              rm -f TAGS.json
+              rm -f .github/workflows/call-build-on-failure.yml
               git add .
-              if git commit -m "Deleted file"; then
+              if git commit -m "Deleted file [skip ci]"; then
                 git push
               fi
               cd "${GITHUB_WORKSPACE}" || exit 1
               rm -rf "${GITHUB_WORKSPACE:?}/${repo}"
-            done < <(curl -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -fsSL "https://api.github.com/repos/${GITHUB_OWNER}/${repo}/branches" | jq -r --arg BRANCH "${BRANCH}" '.[] | select(.name!="master") | .name')
+            done < <(curl -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -fsSL "https://api.github.com/repos/${GITHUB_OWNER}/${repo}/branches" | jq -r --arg BRANCH "${BRANCH}" '.[] | .name')
           done < <(curl -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -fsSL "https://api.github.com/users/${GITHUB_OWNER}/repos?per_page=1000" | jq -r --arg REPO "${REPO}" '.[] | select(.topics[]=="docker-image") | .name')
