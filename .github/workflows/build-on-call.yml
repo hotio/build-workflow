@@ -240,9 +240,8 @@ jobs:
         uses: nick-fields/retry@v2
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
-          IMAGE: ${{ matrix.registry }}/${GITHUB_REPOSITORY}
-          TAG: ${GITHUB_REF//refs\/heads\//}
-          SOURCE: ${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}
+          IMAGE: ${{ matrix.registry }}/${{ github.repository }}
+          TAG: ${{ github.ref_name }}
           VERSION: ${{ needs.build.outputs.version }}
           BRANCH: ${{ needs.build.outputs.branch }}
         with:
@@ -250,6 +249,7 @@ jobs:
           retry_on: error
           timeout_seconds: 20
           command: |
+            SOURCE=${{ env.IMAGE }}:${{ env.TAG }}-${GITHUB_SHA:0:7}-${{ github.run_number }}
             [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
             [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
             docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64}
