@@ -244,7 +244,6 @@ jobs:
           BRANCH: ${{ needs.build.outputs.branch }}
         with:
           max_attempts: 3
-          retry_on: error
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
@@ -292,7 +291,6 @@ jobs:
           BRANCH: ${{ needs.build.outputs.branch }}
         with:
           max_attempts: 3
-          retry_on: error
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
