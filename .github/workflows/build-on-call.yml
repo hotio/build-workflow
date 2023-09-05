@@ -68,17 +68,20 @@ jobs:
       - name: Prepare
         if: contains(steps.arch_check.outputs.check, 'passed')
         id: prep
+        env:
+          TAG: ${{ github.ref_name }}
+          ARCHITECTURE: ${{ matrix.architecture }}
+          REPO_OWNER: ${{ github.repository_owner }}
         run: |
-          ARCHITECTURE=${{ matrix.architecture }}
           echo "changelog=$(jq -r '.changelog' < VERSION.json)" >> $GITHUB_OUTPUT
           echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-          echo "title=${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}" >> $GITHUB_OUTPUT
+          echo "title=${GITHUB_REPOSITORY}:${TAG}" >> $GITHUB_OUTPUT
           echo "revision=${GITHUB_SHA}" >> $GITHUB_OUTPUT
-          echo "source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/tree/${GITHUB_REF//refs\/heads\//}" >> $GITHUB_OUTPUT
-          echo "vendor=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
+          echo "source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/tree/${TAG}" >> $GITHUB_OUTPUT
+          echo "vendor=${REPO_OWNER}" >> $GITHUB_OUTPUT
           echo "url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/master/README.md" >> $GITHUB_OUTPUT
           echo "platform=${ARCHITECTURE//-/\/}" >> $GITHUB_OUTPUT
-          echo "tag=${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}-${{ matrix.architecture }}" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REPOSITORY}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}-${ARCHITECTURE}" >> $GITHUB_OUTPUT
           VERSION=$(jq -r '.version // empty' < VERSION.json)
           if [[ -z ${VERSION} ]]; then
             VERSION=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y%m%d%H%M%S')
@@ -91,7 +94,7 @@ jobs:
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
           jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
-          echo "package-version=${GITHUB_REF//refs\/heads\//}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+          echo "package-version=${TAG}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
 
       - name: Build and push - Attempt 1
         continue-on-error: true
@@ -320,6 +323,7 @@ jobs:
       - name: Send discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TAG: ${{ github.ref_name }}
           VERSION: ${{ needs.build.outputs.version }}
           BRANCH: ${{ needs.build.outputs.branch }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
@@ -340,7 +344,7 @@ jobs:
           json='{
             "embeds": [
               {
-                "title": "'${GITHUB_REPOSITORY}':'${GITHUB_REF//refs\/heads\//}${BRANCH}'",
+                "title": "'${GITHUB_REPOSITORY}':'${TAG}${BRANCH}'",
                 "url": "https://github.com/'${GITHUB_REPOSITORY}'/actions/runs/'${GITHUB_RUN_ID}'",
                 "color": '${COLOR:-15158332}',
                 "fields": [
