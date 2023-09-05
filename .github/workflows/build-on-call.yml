@@ -245,7 +245,8 @@ jobs:
         with:
           max_attempts: 3
           retry_on: error
-          timeout_seconds: 20
+          timeout_minutes: 5
+          retry_wait_seconds: 30
           command: |
             SOURCE=${{ env.IMAGE }}:${{ env.TAG }}-${GITHUB_SHA:0:7}-${{ github.run_number }}
             [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
@@ -292,7 +293,8 @@ jobs:
         with:
           max_attempts: 3
           retry_on: error
-          timeout_seconds: 20
+          timeout_minutes: 5
+          retry_wait_seconds: 30
           command: |
             TAGS="${TAG}${BRANCH},${TAG}${BRANCH}-${VERSION//\~/-},${TAG}${BRANCH}-${GITHUB_SHA:0:7}"
             LAST_UPDATED=$(date -u +'%FT%T.%3NZ')
