@@ -302,6 +302,7 @@ jobs:
           command: |
             TAGS="${TAG}${BRANCH},${TAG}${BRANCH}-${VERSION//\~/-},${TAG}${BRANCH}-${GITHUB_SHA:0:7}"
             LAST_UPDATED=$(date -u +'%FT%T.%3NZ')
+            IS_LATEST=$(jq -r '.latest // empty' < VERSION.json)
             git clone -b "master" "https://${GITHUB_TOKEN}@github.com/${REPO}.git" masterGit
             cd "${GITHUB_WORKSPACE}/masterGit" || exit 1
 
@@ -309,10 +310,9 @@ jobs:
 
             HIDE=$(jq -r '.hide // empty' < VERSION.json)
             if [[ ${HIDE} != true ]]; then
-              IS_LATEST=$(jq -r '.latest // empty' < VERSION.json)
               [[ ! -f tags.json ]] && echo "{}" > tags.json
               tags_json=$(cat ./tags.json)
-              jq '.'"${TAG}"'.tags[0] = "'"${TAG}${BRANCH}"'" | .'"${TAG}"'.tags[1] = "'"${TAG}${BRANCH}"'-'"${VERSION//\~/-}"'" | .'"${TAG}"'.tags[2] = "'"${TAG}${BRANCH}"'-'"${GITHUB_SHA:0:7}"'" | .'"${TAG}"'.last_updated = "'"${LAST_UPDATED}"'" | .'"${TAG}"'.is_latest = "'"${IS_LATEST}"'"' <<< "${tags_json}" > tags.json
+              jq '.'"${TAG}"'.tags[0] = "'"${TAG}${BRANCH}"'" | .'"${TAG}"'.tags[1] = "'"${TAG}${BRANCH}"'-'"${VERSION//\~/-}"'" | .'"${TAG}"'.tags[2] = "'"${TAG}${BRANCH}"'-'"${GITHUB_SHA:0:7}"'" | .'"${TAG}"'.last_updated = "'"${LAST_UPDATED}"'" | .'"${TAG}"'.latest = "'"${IS_LATEST}"'"' <<< "${tags_json}" > tags.json
             fi
 
             git add .
