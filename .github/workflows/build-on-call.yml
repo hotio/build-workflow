@@ -308,7 +308,7 @@ jobs:
 
             jq -n --arg last_updated "${LAST_UPDATED}" --arg tags "${TAGS}" '{ last_updated: $last_updated, tags: $tags | split(",") }' > tags-${TAG}.json
 
-            HIDE=$(jq -r '.hide // empty' < VERSION.json)
+            HIDE=$(jq -r '.hide // false' < VERSION.json)
             if [[ ${HIDE} != true ]]; then
               [[ ! -f tags.json ]] && echo "{}" > tags.json
               tags_json=$(cat ./tags.json)
