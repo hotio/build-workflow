@@ -24,7 +24,7 @@ jobs:
               echo "Updating ${repo}/${branch}..."
               git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
               cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
-              rm -f .github/workflows/call-build-on-failure.yml
+              rm -f tags-*.json
               git add .
               if git commit -m "Deleted file [skip ci]"; then
                 git push
