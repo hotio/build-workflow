@@ -39,7 +39,7 @@ jobs:
 
       - name: Set up QEMU
         if: contains(steps.arch_check.outputs.check, 'passed')
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         if: contains(steps.arch_check.outputs.check, 'passed')
