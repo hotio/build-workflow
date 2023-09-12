@@ -43,7 +43,7 @@ jobs:
 
       - name: Set up Docker Buildx
         if: contains(steps.arch_check.outputs.check, 'passed')
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           install: true
           version: latest
