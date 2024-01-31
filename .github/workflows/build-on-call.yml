@@ -238,7 +238,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create manifests
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
           IMAGE: ${{ matrix.registry }}/${{ github.repository }}
@@ -288,7 +288,7 @@ jobs:
           git config --global user.name "${GITHUB_OWNER}"
 
       - name: Update tags .json file
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
           REPO: ${{ github.repository }}
