@@ -96,6 +96,7 @@ jobs:
           echo 'EOF' >> $GITHUB_OUTPUT
           echo "package-version=${TAG}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
           echo "image-stats=$(jq '.app = "'"${GITHUB_REPOSITORY/${REPO_OWNER}\//}"'" | .image = "'"${GITHUB_REPOSITORY}:${TAG}"'" | .revision = "'"${GITHUB_SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64)" >> $GITHUB_OUTPUT
+          echo "$(jq '.app = "'"${GITHUB_REPOSITORY/${REPO_OWNER}\//}"'" | .image = "'"${GITHUB_REPOSITORY}:${TAG}"'" | .revision = "'"${GITHUB_SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64)" > ./root/image_stats
 
       - name: Build and push - Attempt 1
         continue-on-error: true
