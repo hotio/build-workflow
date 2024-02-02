@@ -91,11 +91,11 @@ jobs:
           if [[ -n ${BRANCH} ]]; then
             echo "branch=-${BRANCH}" >> $GITHUB_OUTPUT
           fi
+          echo "image_stats=$(jq '.app = "'"${GITHUB_REPOSITORY/${REPO_OWNER}\//}"'" | .image = "'"${GITHUB_REPOSITORY}:${TAG}"'" | .revision = "'"${GITHUB_SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}")" >> $GITHUB_OUTPUT
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
           jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
           echo "package-version=${TAG}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
-          jq '.app = "'"${GITHUB_REPOSITORY/${REPO_OWNER}\//}"'" | .image = "'"${GITHUB_REPOSITORY}:${TAG}"'" | .revision = "'"${GITHUB_SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" > root/image_stats.json
 
       - name: Build and push - Attempt 1
         continue-on-error: true
