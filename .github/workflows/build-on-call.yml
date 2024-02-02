@@ -91,7 +91,7 @@ jobs:
           if [[ -n ${BRANCH} ]]; then
             echo "branch=-${BRANCH}" >> $GITHUB_OUTPUT
           fi
-          echo "image_stats=$(jq '.app = "'"${GITHUB_REPOSITORY/${REPO_OWNER}\//}"'" | .image = "'"${GITHUB_REPOSITORY}:${TAG}"'" | .revision = "'"${GITHUB_SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}")" >> $GITHUB_OUTPUT
+          echo "image_stats=$(jq '.app = "'"${GITHUB_REPOSITORY/${REPO_OWNER}\//}"'" | .image = "'"${GITHUB_REPOSITORY}:${TAG}"'" | .revision = "'"${GITHUB_SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64)" >> $GITHUB_OUTPUT
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
           jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
