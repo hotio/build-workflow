@@ -371,7 +371,11 @@ jobs:
           ARTIFACT_URL: ${{ needs.build.outputs.artifact-url }}
         shell: bash
         run: |
-          [[ "${STATUS}" == "success" ]] && COLOR="3066993"
+          if [[ "${STATUS}" == "success" ]]; then
+            COLOR="3066993"
+          else
+            MENTION='"content": "<@269648028502196224>",'
+          fi
           if [[ ${CHANGELOG} != null ]]; then
             VERSION="[${VERSION:----}](${CHANGELOG})"
           fi
@@ -386,6 +390,7 @@ jobs:
             COMMIT_MESSAGE="---"
           fi
           json='{
+            '${MENTION}'
             "embeds": [
               {
                 "title": "'${GITHUB_REPOSITORY}':'${TAG}${BRANCH}'",
