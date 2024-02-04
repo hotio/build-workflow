@@ -161,7 +161,8 @@ jobs:
             ${{ steps.prep.outputs.build-args }}
 
       - name: Get installed packages
-        if: contains(steps.arch_check.outputs.check, 'passed')
+        if: |
+          contains(steps.arch_check.outputs.check, 'passed')
         run: |
           version_json=$(cat ./VERSION.json)
           upstream_tag=$(jq -r '.upstream_tag' <<< "${version_json}")
@@ -230,12 +231,11 @@ jobs:
         id: artifact
         if: |
           contains(steps.arch_check.outputs.check, 'passed') &&
-          contains(steps.prep_test.outputs.check, 'passed') &&
           contains(matrix.architecture, 'amd64')
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
-          name: ${{ steps.prep.outputs.package-version }}-results
+          name: ${{ steps.prep.outputs.package-version }}-results-${{ matrix.architecture }}
           path: |
             ${{ steps.prep.outputs.package-version }}-*.*
 
@@ -356,7 +356,7 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build.outputs.package-version }}-results
+          name: ${{ needs.build.outputs.package-version }}-results-linux-amd64
 
       - name: Send discord notification
         env:
