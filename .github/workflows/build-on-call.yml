@@ -382,7 +382,7 @@ jobs:
           if [[ -f "${PACKAGE_VERSION}-screenshot.png" ]]; then
             IMAGE_JSON=',"image": {"url": "attachment://'${PACKAGE_VERSION}'-screenshot.png"}'
           fi
-          echo "$PACKAGE_VERSION"
+          echo "$IMAGE_JSON"
           if [[ -z ${COMMIT_MESSAGE} ]]; then
             COMMIT_MESSAGE="---"
           fi
