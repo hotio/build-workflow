@@ -224,7 +224,7 @@ jobs:
           contains(steps.arch-exists.outputs.result, 'passed') &&
           contains(steps.check-for-test.outputs.result, 'passed') &&
           contains(matrix.architecture, 'amd64')
-        uses: joutvhu/delete-artifact@v1
+        uses: joutvhu/delete-artifact@v2
         with:
           name: ${{ steps.prep.outputs.package-version }}-screenshot
 
