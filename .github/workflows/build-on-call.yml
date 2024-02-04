@@ -208,7 +208,8 @@ jobs:
         id: screenshot
         if: |
           contains(steps.arch-exists.outputs.result, 'passed') &&
-          contains(steps.check-for-test.outputs.result, 'passed')
+          contains(steps.check-for-test.outputs.result, 'passed') &&
+          contains(matrix.architecture, 'amd64')
         uses: swinton/screenshot-website@main
         with:
           source: ${{ steps.check-for-test.outputs.url }}
@@ -219,7 +220,8 @@ jobs:
         continue-on-error: true
         if: |
           contains(steps.arch-exists.outputs.result, 'passed') &&
-          contains(steps.check-for-test.outputs.result, 'passed')
+          contains(steps.check-for-test.outputs.result, 'passed') &&
+          contains(matrix.architecture, 'amd64')
         uses: joutvhu/delete-artifact@v1
         with:
           name: ${{ steps.prep.outputs.package-version }}-screenshot
@@ -228,7 +230,8 @@ jobs:
         continue-on-error: true
         if: |
           contains(steps.arch-exists.outputs.result, 'passed') &&
-          contains(steps.check-for-test.outputs.result, 'passed')
+          contains(steps.check-for-test.outputs.result, 'passed') &&
+          contains(matrix.architecture, 'amd64')
         run: cp ${{ steps.screenshot.outputs.path }} ${{ github.workspace }}/${{ steps.prep.outputs.package-version }}-screenshot.png
 
       - name: Upload results
