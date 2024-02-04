@@ -159,14 +159,17 @@ jobs:
 
       - name: Get installed packages
         if: contains(steps.arch-exists.outputs.result, 'passed')
+        env:
+          image: ${{ steps.prep.outputs.tag }}
+          package_version: ${{ steps.prep.outputs.package-version }}
         run: |
           version_json=$(cat ./VERSION.json)
           upstream_tag=$(jq -r '.upstream_tag' <<< "${version_json}")
           upstream_image=$(jq -r '.upstream_image' <<< "${version_json}")
           if [[ ${upstream_tag} == alpine* || ${upstream_image} == alpine* ]]; then
-            docker run --rm --entrypoint="" "ghcr.io/${{ steps.prep.outputs.tag }}" apk -vv info | sort > "${{ steps.prep.outputs.package-version }}-packages.log" 2>&1
+            docker run --rm --entrypoint="" "ghcr.io/${image}" apk -vv info | sort > "${package_version}-packages.log" 2>&1
           else
-            docker run --rm --entrypoint="" "ghcr.io/${{ steps.prep.outputs.tag }}" apt list --installed > "${{ steps.prep.outputs.package-version }}-packages.log" 2>&1
+            docker run --rm --entrypoint="" "ghcr.io/${image}" apt list --installed > "${package_version}-packages.log" 2>&1
           fi
 
       - name: Check if we should do a test
@@ -191,48 +194,16 @@ jobs:
         if: |
           contains(steps.arch-exists.outputs.result, 'passed') &&
           contains(steps.check-for-test.outputs.result, 'passed')
+        env:
+          test_url: ${{ steps.check-for-test.outputs.url }}
+          image: ${{ steps.prep.outputs.tag }}
+          package_version: ${{ steps.prep.outputs.package-version }}
         run: |
-          test_url=${{ steps.check-for-test.outputs.url }}
-          docker run --network host -d --name service "ghcr.io/${{ steps.prep.outputs.tag }}"
+          docker run --network host -d --name service "ghcr.io/${image}"
           currenttime=$(date +%s); maxtime=$((currenttime+120)); while (! curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null) && [[ "$currenttime" -lt "$maxtime" ]]; do sleep 1; currenttime=$(date +%s); done
-          if curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null; then
-            docker logs service > "${{ steps.prep.outputs.package-version }}-test.log" 2>&1
-            exit 0
-          else
-            docker logs service > "${{ steps.prep.outputs.package-version }}-test.log" 2>&1
-            exit 1
-          fi
-
-      - name: Take screenshot
-        continue-on-error: true
-        id: screenshot
-        if: |
-          contains(steps.arch-exists.outputs.result, 'passed') &&
-          contains(steps.check-for-test.outputs.result, 'passed') &&
-          contains(matrix.architecture, 'amd64')
-        uses: swinton/screenshot-website@main
-        with:
-          source: ${{ steps.check-for-test.outputs.url }}
-          destination: ${{ steps.prep.outputs.package-version }}-screenshot.png
-          delay: 5
-
-      - name: Delete obsolete artifact
-        continue-on-error: true
-        if: |
-          contains(steps.arch-exists.outputs.result, 'passed') &&
-          contains(steps.check-for-test.outputs.result, 'passed') &&
-          contains(matrix.architecture, 'amd64')
-        uses: joutvhu/delete-artifact@v1
-        with:
-          name: ${{ steps.prep.outputs.package-version }}-screenshot
-
-      - name: Copy screenshot
-        continue-on-error: true
-        if: |
-          contains(steps.arch-exists.outputs.result, 'passed') &&
-          contains(steps.check-for-test.outputs.result, 'passed') &&
-          contains(matrix.architecture, 'amd64')
-        run: cp ${{ steps.screenshot.outputs.path }} ${{ github.workspace }}/${{ steps.prep.outputs.package-version }}-screenshot.png
+          docker logs service > "${package_version}-test.log" 2>&1
+          curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null
+          exit $?
 
       - name: Upload results
         continue-on-error: true
@@ -243,7 +214,7 @@ jobs:
           if-no-files-found: warn
           name: ${{ steps.prep.outputs.package-version }}-results-${{ matrix.architecture }}
           path: |
-            ${{ steps.prep.outputs.package-version }}-*.*
+            ${{ steps.prep.outputs.package-version }}-*.log
 
   publish:
     runs-on: ubuntu-22.04
@@ -358,19 +329,12 @@ jobs:
     if: always()
     needs: [build, publish]
     steps:
-      - name: Download results
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ needs.build.outputs.package-version }}-results-linux-amd64
-
       - name: Send discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           TAG: ${{ github.ref_name }}
           VERSION: ${{ needs.build.outputs.version }}
           BRANCH: ${{ needs.build.outputs.branch }}
-          PACKAGE_VERSION: ${{ needs.build.outputs.package-version }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           STATUS: ${{ needs.publish.result }}
         shell: bash
@@ -379,9 +343,6 @@ jobs:
             COLOR="3066993"
           else
             MENTION='"content": "<@269648028502196224>",'
-          fi
-          if [[ -f "${PACKAGE_VERSION}-screenshot.png" ]]; then
-            IMAGE_JSON=',"image": {"url": "attachment://'${PACKAGE_VERSION}'-screenshot.png"}'
           fi
           if [[ -z ${COMMIT_MESSAGE} ]]; then
             COMMIT_MESSAGE="---"
@@ -412,12 +373,8 @@ jobs:
                 "footer": {
                   "text": "Powered by GitHub Actions"
                 },
-                "timestamp": "'$(date -u +'%FT%T.%3NZ')'"'"${IMAGE_JSON}"'
+                "timestamp": "'$(date -u +'%FT%T.%3NZ')'"
               }
             ]
           }'
-          if [[ -f "${PACKAGE_VERSION}-screenshot.png" ]]; then
-            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "file=@${PACKAGE_VERSION}-screenshot.png" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
-          else
-            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
-          fi
+          curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
