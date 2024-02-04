@@ -205,6 +205,7 @@ jobs:
 
       - name: Take screenshot
         continue-on-error: true
+        id: screenshot
         if: |
           contains(steps.arch_check.outputs.check, 'passed') &&
           contains(steps.prep_test.outputs.check, 'passed') &&
@@ -225,7 +226,9 @@ jobs:
         with:
           if-no-files-found: warn
           name: ${{ steps.prep.outputs.package-version }}-results
-          path: ${{ steps.prep.outputs.package-version }}-*.*
+          path: |
+            ${{ steps.prep.outputs.package-version }}-*.*
+            ${{ steps.screenshot.outputs.path }}
 
   publish:
     runs-on: ubuntu-22.04
