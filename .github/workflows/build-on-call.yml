@@ -218,6 +218,16 @@ jobs:
           destination: ${{ steps.prep.outputs.package-version }}-screenshot.png
           delay: 5
 
+      - name: Delete obsolete artifact
+        continue-on-error: true
+        if: |
+          contains(steps.arch-exists.outputs.result, 'passed') &&
+          contains(steps.check-for-test.outputs.result, 'passed') &&
+          contains(matrix.architecture, 'amd64')
+        uses: joutvhu/delete-artifact@v1
+        with:
+          name: ${{ steps.prep.outputs.package-version }}-screenshot
+
       - name: Copy screenshot
         continue-on-error: true
         if: |
