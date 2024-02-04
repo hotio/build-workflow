@@ -27,9 +27,7 @@ jobs:
     outputs:
       version: ${{ steps.prep.outputs.version }}
       branch: ${{ steps.prep.outputs.branch }}
-      changelog: ${{ steps.prep.outputs.changelog }}
       package-version: ${{ steps.prep.outputs.package-version }}
-      artifact-url: ${{ steps.artifact.outputs.artifact-url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,7 +73,6 @@ jobs:
           ARCHITECTURE: ${{ matrix.architecture }}
           REPO_OWNER: ${{ github.repository_owner }}
         run: |
-          echo "changelog=$(jq -r '.changelog' < VERSION.json)" >> $GITHUB_OUTPUT
           echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
           echo "title=${GITHUB_REPOSITORY}:${TAG}" >> $GITHUB_OUTPUT
           echo "revision=${GITHUB_SHA}" >> $GITHUB_OUTPUT
@@ -161,8 +158,7 @@ jobs:
             ${{ steps.prep.outputs.build-args }}
 
       - name: Get installed packages
-        if: |
-          contains(steps.arch-exists.outputs.result, 'passed')
+        if: contains(steps.arch-exists.outputs.result, 'passed')
         run: |
           version_json=$(cat ./VERSION.json)
           upstream_tag=$(jq -r '.upstream_tag' <<< "${version_json}")
@@ -174,25 +170,27 @@ jobs:
           fi
 
       - name: Check if we should do a test
-        if: |
-          contains(steps.arch-exists.outputs.result, 'passed') &&
-          contains(matrix.architecture, 'amd64')
+        if: contains(steps.arch-exists.outputs.result, 'passed')
         id: check-for-test
+        env:
+          ARCHITECTURE: ${{ matrix.architecture }}
         run: |
           version_json=$(cat ./VERSION.json)
           test_url=$(jq -r '.test_url' <<< "${version_json}")
-          if [[ ${test_url} != null ]]; then
-            echo "url=${test_url}" >> $GITHUB_OUTPUT
+          test_arm64=$(jq -r '.test_arm64' <<< "${version_json}")
+          echo "url=${test_url}" >> $GITHUB_OUTPUT
+          echo "result=failed" >> $GITHUB_OUTPUT
+          if [[ ${test_url} != null ]] && [[ ${ARCHITECTURE} == linux-amd64 ]]; then
             echo "result=passed" >> $GITHUB_OUTPUT
-          else
-            echo "result=failed" >> $GITHUB_OUTPUT
+          fi
+          if [[ ${test_url} != null ]] && [[ ${test_arm64} == true ]]; then
+            echo "result=passed" >> $GITHUB_OUTPUT
           fi
 
       - name: Run the actual test
         if: |
           contains(steps.arch-exists.outputs.result, 'passed') &&
-          contains(steps.check-for-test.outputs.result, 'passed') &&
-          contains(matrix.architecture, 'amd64')
+          contains(steps.check-for-test.outputs.result, 'passed')
         run: |
           test_url=${{ steps.check-for-test.outputs.url }}
           docker run --network host -d --name service "ghcr.io/${{ steps.prep.outputs.tag }}"
@@ -210,8 +208,7 @@ jobs:
         id: screenshot
         if: |
           contains(steps.arch-exists.outputs.result, 'passed') &&
-          contains(steps.check-for-test.outputs.result, 'passed') &&
-          contains(matrix.architecture, 'amd64')
+          contains(steps.check-for-test.outputs.result, 'passed')
         uses: swinton/screenshot-website@main
         with:
           source: ${{ steps.check-for-test.outputs.url }}
@@ -222,8 +219,7 @@ jobs:
         continue-on-error: true
         if: |
           contains(steps.arch-exists.outputs.result, 'passed') &&
-          contains(steps.check-for-test.outputs.result, 'passed') &&
-          contains(matrix.architecture, 'amd64')
+          contains(steps.check-for-test.outputs.result, 'passed')
         uses: joutvhu/delete-artifact@v1
         with:
           name: ${{ steps.prep.outputs.package-version }}-screenshot
@@ -232,15 +228,13 @@ jobs:
         continue-on-error: true
         if: |
           contains(steps.arch-exists.outputs.result, 'passed') &&
-          contains(steps.check-for-test.outputs.result, 'passed') &&
-          contains(matrix.architecture, 'amd64')
+          contains(steps.check-for-test.outputs.result, 'passed')
         run: cp ${{ steps.screenshot.outputs.path }} ${{ github.workspace }}/${{ steps.prep.outputs.package-version }}-screenshot.png
 
       - name: Upload results
         continue-on-error: true
         id: artifact
-        if: |
-          contains(steps.arch-exists.outputs.result, 'passed')
+        if: contains(steps.arch-exists.outputs.result, 'passed')
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
@@ -375,9 +369,7 @@ jobs:
           BRANCH: ${{ needs.build.outputs.branch }}
           PACKAGE_VERSION: ${{ needs.build.outputs.package-version }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          CHANGELOG: ${{ needs.build.outputs.changelog }}
           STATUS: ${{ needs.publish.result }}
-          ARTIFACT_URL: ${{ needs.build.outputs.artifact-url }}
         shell: bash
         run: |
           if [[ "${STATUS}" == "success" ]]; then
@@ -385,15 +377,8 @@ jobs:
           else
             MENTION='"content": "<@269648028502196224>",'
           fi
-          if [[ ${CHANGELOG} != null ]]; then
-            VERSION="[${VERSION:----}](${CHANGELOG})"
-          fi
-          if [[ ${ARTIFACT_URL} != "" ]]; then
-            ARTIFACT_URL="[${PACKAGE_VERSION:----}-results](${ARTIFACT_URL})"
-          fi
           if [[ -f "${PACKAGE_VERSION}-screenshot.png" ]]; then
-            mv "${PACKAGE_VERSION}-screenshot.png" screenshot.png
-            IMAGE_JSON=',"image": {"url": "attachment://screenshot.png"}'
+            IMAGE_JSON=',"image": {"url": "attachment://'${PACKAGE_VERSION}'-screenshot.png"}'
           fi
           if [[ -z ${COMMIT_MESSAGE} ]]; then
             COMMIT_MESSAGE="---"
@@ -409,10 +394,6 @@ jobs:
                   {
                     "name": "Commit Message",
                     "value": "```'${COMMIT_MESSAGE//\"/\\\"}'```"
-                  },
-                  {
-                    "name": "Artifact",
-                    "value": "'${ARTIFACT_URL:----}'"
                   },
                   {
                     "name": "Commit SHA",
@@ -432,8 +413,8 @@ jobs:
               }
             ]
           }'
-          if [[ -f "screenshot.png" ]]; then
-            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "file=@screenshot.png" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
+          if [[ -f "${PACKAGE_VERSION}-screenshot.png" ]]; then
+            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "file=@${PACKAGE_VERSION}-screenshot.png" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
           else
             curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
           fi
