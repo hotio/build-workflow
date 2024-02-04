@@ -216,6 +216,14 @@ jobs:
           destination: ${{ steps.prep.outputs.package-version }}-screenshot.png
           delay: 5
 
+      - name: Copy screenshot
+        continue-on-error: true
+        if: |
+          contains(steps.arch_check.outputs.check, 'passed') &&
+          contains(steps.prep_test.outputs.check, 'passed') &&
+          contains(matrix.architecture, 'amd64')
+        run: cp ${{ steps.screenshot.outputs.path }} ${{ github.workspace }}/${{ steps.prep.outputs.package-version }}-screenshot.png
+
       - name: Upload results
         continue-on-error: true
         if: |
@@ -228,7 +236,6 @@ jobs:
           name: ${{ steps.prep.outputs.package-version }}-results
           path: |
             ${{ steps.prep.outputs.package-version }}-*.*
-            ${{ steps.screenshot.outputs.path }}
 
   publish:
     runs-on: ubuntu-22.04
