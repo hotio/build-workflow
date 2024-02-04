@@ -211,7 +211,7 @@ jobs:
           contains(steps.arch_check.outputs.check, 'passed') &&
           contains(steps.prep_test.outputs.check, 'passed') &&
           contains(matrix.architecture, 'amd64')
-        uses: swinton/screenshot-website@v1.x
+        uses: swinton/screenshot-website@main
         with:
           source: ${{ steps.prep_test.outputs.url }}
           destination: ${{ steps.prep.outputs.package-version }}-screenshot.png
