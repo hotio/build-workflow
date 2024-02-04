@@ -35,16 +35,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check if architecture exists
-        id: arch_check
+        id: arch-exists
         run: |
-          (test -f ${{ matrix.architecture }}.Dockerfile && echo "check=passed" >> $GITHUB_OUTPUT) || echo "check=failed" >> $GITHUB_OUTPUT
+          (test -f ${{ matrix.architecture }}.Dockerfile && echo "result=passed" >> $GITHUB_OUTPUT) || echo "result=failed" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
-        if: contains(steps.arch_check.outputs.check, 'passed')
+        if: contains(steps.arch-exists.outputs.result, 'passed')
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        if: contains(steps.arch_check.outputs.check, 'passed')
+        if: contains(steps.arch-exists.outputs.result, 'passed')
         uses: docker/setup-buildx-action@v3
         with:
           install: true
@@ -52,7 +52,7 @@ jobs:
           driver-opts: image=moby/buildkit:v0.10.6
 
       - name: Login to docker.io
-        if: contains(steps.arch_check.outputs.check, 'passed')
+        if: contains(steps.arch-exists.outputs.result, 'passed')
         uses: docker/login-action@v3
         with:
           registry: docker.io
@@ -60,7 +60,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to ghcr.io
-        if: contains(steps.arch_check.outputs.check, 'passed')
+        if: contains(steps.arch-exists.outputs.result, 'passed')
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -68,7 +68,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prepare
-        if: contains(steps.arch_check.outputs.check, 'passed')
+        if: contains(steps.arch-exists.outputs.result, 'passed')
         id: prep
         env:
           TAG: ${{ github.ref_name }}
@@ -101,7 +101,7 @@ jobs:
 
       - name: Build and push - Attempt 1
         continue-on-error: true
-        if: contains(steps.arch_check.outputs.check, 'passed')
+        if: contains(steps.arch-exists.outputs.result, 'passed')
         id: build_attempt1
         uses: docker/build-push-action@v5
         with:
@@ -162,7 +162,7 @@ jobs:
 
       - name: Get installed packages
         if: |
-          contains(steps.arch_check.outputs.check, 'passed')
+          contains(steps.arch-exists.outputs.result, 'passed')
         run: |
           version_json=$(cat ./VERSION.json)
           upstream_tag=$(jq -r '.upstream_tag' <<< "${version_json}")
@@ -173,28 +173,28 @@ jobs:
             docker run --rm --entrypoint="" "ghcr.io/${{ steps.prep.outputs.tag }}" apt list --installed > "${{ steps.prep.outputs.package-version }}-packages.log" 2>&1
           fi
 
-      - name: Prepare for test
+      - name: Check if we should do a test
         if: |
-          contains(steps.arch_check.outputs.check, 'passed') &&
+          contains(steps.arch-exists.outputs.result, 'passed') &&
           contains(matrix.architecture, 'amd64')
-        id: prep_test
+        id: check-for-test
         run: |
           version_json=$(cat ./VERSION.json)
           test_url=$(jq -r '.test_url' <<< "${version_json}")
           if [[ ${test_url} != null ]]; then
             echo "url=${test_url}" >> $GITHUB_OUTPUT
-            echo "check=passed" >> $GITHUB_OUTPUT
+            echo "result=passed" >> $GITHUB_OUTPUT
           else
-            echo "check=failed" >> $GITHUB_OUTPUT
+            echo "result=failed" >> $GITHUB_OUTPUT
           fi
 
-      - name: Run test
+      - name: Run the actual test
         if: |
-          contains(steps.arch_check.outputs.check, 'passed') &&
-          contains(steps.prep_test.outputs.check, 'passed') &&
+          contains(steps.arch-exists.outputs.result, 'passed') &&
+          contains(steps.check-for-test.outputs.result, 'passed') &&
           contains(matrix.architecture, 'amd64')
         run: |
-          test_url=${{ steps.prep_test.outputs.url }}
+          test_url=${{ steps.check-for-test.outputs.url }}
           docker run --network host -d --name service "ghcr.io/${{ steps.prep.outputs.tag }}"
           currenttime=$(date +%s); maxtime=$((currenttime+120)); while (! curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null) && [[ "$currenttime" -lt "$maxtime" ]]; do sleep 1; currenttime=$(date +%s); done
           if curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null; then
@@ -209,20 +209,20 @@ jobs:
         continue-on-error: true
         id: screenshot
         if: |
-          contains(steps.arch_check.outputs.check, 'passed') &&
-          contains(steps.prep_test.outputs.check, 'passed') &&
+          contains(steps.arch-exists.outputs.result, 'passed') &&
+          contains(steps.check-for-test.outputs.result, 'passed') &&
           contains(matrix.architecture, 'amd64')
         uses: swinton/screenshot-website@main
         with:
-          source: ${{ steps.prep_test.outputs.url }}
+          source: ${{ steps.check-for-test.outputs.url }}
           destination: ${{ steps.prep.outputs.package-version }}-screenshot.png
           delay: 5
 
       - name: Copy screenshot
         continue-on-error: true
         if: |
-          contains(steps.arch_check.outputs.check, 'passed') &&
-          contains(steps.prep_test.outputs.check, 'passed') &&
+          contains(steps.arch-exists.outputs.result, 'passed') &&
+          contains(steps.check-for-test.outputs.result, 'passed') &&
           contains(matrix.architecture, 'amd64')
         run: cp ${{ steps.screenshot.outputs.path }} ${{ github.workspace }}/${{ steps.prep.outputs.package-version }}-screenshot.png
 
@@ -230,7 +230,7 @@ jobs:
         continue-on-error: true
         id: artifact
         if: |
-          contains(steps.arch_check.outputs.check, 'passed')
+          contains(steps.arch-exists.outputs.result, 'passed')
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
