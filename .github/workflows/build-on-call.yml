@@ -230,8 +230,7 @@ jobs:
         continue-on-error: true
         id: artifact
         if: |
-          contains(steps.arch_check.outputs.check, 'passed') &&
-          contains(matrix.architecture, 'amd64')
+          contains(steps.arch_check.outputs.check, 'passed')
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
