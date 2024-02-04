@@ -368,6 +368,7 @@ jobs:
           STATUS: ${{ needs.publish.result }}
         shell: bash
         run: |
+          ls -l
           [[ "${STATUS}" == "success" ]] && COLOR="3066993"
           if [[ ${CHANGELOG} != null ]]; then
             VERSION="[${VERSION:----}](${CHANGELOG})"
