@@ -377,7 +377,7 @@ jobs:
             VERSION="[${VERSION:----}](${CHANGELOG})"
           fi
           if [[ ${ARTIFACT_URL} != "" ]]; then
-            ARTIFACT_URL="[${PACKAGE_VERSION:----}](${ARTIFACT_URL})"
+            ARTIFACT_URL="[${PACKAGE_VERSION:----}-results](${ARTIFACT_URL})"
           fi
           if [[ -f "${PACKAGE_VERSION}-screenshot.png" ]]; then
             IMAGE_JSON=',"image": {"url": "attachment://'${PACKAGE_VERSION}'-screenshot.png"}'
