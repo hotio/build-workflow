@@ -43,8 +43,6 @@ jobs:
       - name: Set up Docker Buildx
         if: (steps.arch-exists.outputs.result == 'ok')
         uses: docker/setup-buildx-action@v3
-        with:
-          buildkitd-flags: --provenance=false
 
       - name: Login to docker.io
         if: (steps.arch-exists.outputs.result == 'ok')
@@ -97,6 +95,7 @@ jobs:
         if: (steps.arch-exists.outputs.result == 'ok')
         uses: docker/build-push-action@v5
         with:
+          provenance: false
           load: true
           platforms: ${{ steps.prep.outputs.platform }}
           file: ./${{ matrix.architecture }}.Dockerfile
@@ -140,6 +139,7 @@ jobs:
         if: (steps.arch-exists.outputs.result == 'ok')
         uses: docker/build-push-action@v5
         with:
+          provenance: false
           push: true
           platforms: ${{ steps.prep.outputs.platform }}
           file: ./${{ matrix.architecture }}.Dockerfile
