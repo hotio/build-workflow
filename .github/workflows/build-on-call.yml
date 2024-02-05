@@ -102,8 +102,8 @@ jobs:
           load: true
           platforms: ${{ steps.prep.outputs.platform }}
           file: ./${{ matrix.architecture }}.Dockerfile
-          cache-from: type=registry,ref=${{ steps.prep.outputs.title }}-buildcache
-          cache-to: type=registry,ref=${{ steps.prep.outputs.title }}-buildcache,mode=max
+          cache-from: type=registry,ref=${{ steps.prep.outputs.title }}-buildcache-${{ matrix.architecture }}
+          cache-to: type=registry,ref=${{ steps.prep.outputs.title }}-buildcache-${{ matrix.architecture }},mode=max
           tags: ${{ steps.prep.outputs.title }}-${{ matrix.architecture }}
           build-args: |
             ${{ steps.prep.outputs.build-args }}
