@@ -25,8 +25,14 @@ jobs:
         architecture: [linux-arm64, linux-amd64]
     needs: [shellcheck]
     outputs:
-      version: ${{ steps.prep.outputs.version }}
-      pr-branch:  ${{ steps.prep.outputs.pr-branch }}
+      version:                  ${{ steps.prep.outputs.version }}
+      created:                  ${{ steps.prep.outputs.created }}
+      image-tag-full-amd64:     ${{ steps.prep.outputs.image-tag-full-amd64 }}
+      image-tag-full-arm64:     ${{ steps.prep.outputs.image-tag-full-arm64 }}
+      image-tag-latest:         ${{ steps.prep.outputs.image-tag-latest }}
+      image-tag-branch:         ${{ steps.prep.outputs.image-tag-branch }}
+      image-tag-branch-version: ${{ steps.prep.outputs.image-tag-branch-version }}
+      image-tag-branch-sha:     ${{ steps.prep.outputs.image-tag-branch-sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -65,7 +71,7 @@ jobs:
         id: prep
         env:
           ARCHITECTURE:     ${{ matrix.architecture }}
-          TAG:              ${{ github.ref_name }}
+          BRANCH:           ${{ github.ref_name }}
           RUN_NUMBER:       ${{ github.run_number }}
           REPOSITORY:       ${{ github.repository }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
@@ -78,21 +84,26 @@ jobs:
           PR_BRANCH=$(jq -r '.branch // empty' < VERSION.json)
           [[ -n ${PR_BRANCH} ]] && PR_BRANCH=-${PR_BRANCH}
           echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-          echo "title=${REPOSITORY}:${TAG}" >> $GITHUB_OUTPUT
           echo "revision=${SHA}" >> $GITHUB_OUTPUT
-          echo "source=${SERVER_URL}/${REPOSITORY}/tree/${TAG}" >> $GITHUB_OUTPUT
+          echo "source=${SERVER_URL}/${REPOSITORY}/tree/${BRANCH}" >> $GITHUB_OUTPUT
           echo "vendor=${REPOSITORY_OWNER}" >> $GITHUB_OUTPUT
           echo "url=${SERVER_URL}/${REPOSITORY}/blob/master/README.md" >> $GITHUB_OUTPUT
           echo "platform=${ARCHITECTURE//-/\/}" >> $GITHUB_OUTPUT
-          echo "tag=${REPOSITORY}:${TAG}-${SHA:0:7}-${RUN_NUMBER}-${ARCHITECTURE}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "pr-branch=${PR_BRANCH}" >> $GITHUB_OUTPUT
-          echo "package-version=${TAG}-${SHA:0:7}" >> $GITHUB_OUTPUT
+          echo "package-version=${BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
+          echo "image-tag-cache=${REPOSITORY}:${BRANCH}${PR_BRANCH}-buildcache-${ARCHITECTURE}" >> $GITHUB_OUTPUT
+          echo "image-tag-full=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${ARCHITECTURE}" >> $GITHUB_OUTPUT
+          echo "image-tag-full-amd64=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-linux-amd64" >> $GITHUB_OUTPUT
+          echo "image-tag-full-arm64=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-linux-arm64" >> $GITHUB_OUTPUT
+          echo "image-tag-branch=${REPOSITORY}:${BRANCH}${PR_BRANCH}" >> $GITHUB_OUTPUT
+          echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION}" >> $GITHUB_OUTPUT
+          echo "image-tag-branch-sha=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
+          [[ $(jq -r '.latest // empty' < VERSION.json) == true ]] && echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
             jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
             echo "BUILD_ARCHITECTURE=${ARCHITECTURE}" >> $GITHUB_OUTPUT
-            echo "PACKAGE_VERSION=${TAG}-${SHA:0:7}" >> $GITHUB_OUTPUT
-            echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${TAG}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
+            echo "PACKAGE_VERSION=${BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${BRANCH}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Build Image
@@ -103,17 +114,16 @@ jobs:
           load: true
           platforms: ${{ steps.prep.outputs.platform }}
           file: ./${{ matrix.architecture }}.Dockerfile
-          cache-from: type=registry,ref=${{ steps.prep.outputs.title }}-buildcache-${{ matrix.architecture }}
-          cache-to: type=registry,ref=${{ steps.prep.outputs.title }}-buildcache-${{ matrix.architecture }},mode=max
-          tags: ${{ steps.prep.outputs.title }}-${{ matrix.architecture }}
+          cache-from: type=registry,ref=${{ steps.prep.outputs.image-tag-cache }}
+          cache-to: type=registry,ref=${{ steps.prep.outputs.image-tag-cache }},mode=max
+          tags: ${{ steps.prep.outputs.image-tag-full }}
           build-args: |
             ${{ steps.prep.outputs.build-args }}
 
       - name: List Packages and Smoke Test
         if: (steps.arch-exists.outputs.result == 'ok')
         env:
-          ARCHITECTURE:    ${{ matrix.architecture }}
-          IMAGE:           ${{ steps.prep.outputs.title }}-${{ matrix.architecture }}
+          IMAGE:           ${{ steps.prep.outputs.image-tag-full }}
           PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
           PLATFORM:        ${{ steps.prep.outputs.platform }}
         run: |
@@ -128,8 +138,8 @@ jobs:
           test_amd64=$(jq -r '.test_arm64' < ./VERSION.json)
           test_arm64=$(jq -r '.test_arm64' < ./VERSION.json)
           if [[ ${test_url} != null ]]; then
-            [[ ${ARCHITECTURE} == linux-amd64 ]]                                && do_test=true
-            [[ ${ARCHITECTURE} == linux-arm64 ]] && [[ ${test_arm64} == true ]] && do_test=true
+            [[ ${PLATFORM} == linux/amd64 ]]                                && do_test=true
+            [[ ${PLATFORM} == linux/arm64 ]] && [[ ${test_arm64} == true ]] && do_test=true
           fi
           if [[ ${do_test} == true ]]; then
             docker run --platform="${PLATFORM}" --network host -d --name service "${IMAGE}"
@@ -148,11 +158,11 @@ jobs:
           platforms: ${{ steps.prep.outputs.platform }}
           file: ./${{ matrix.architecture }}.Dockerfile
           tags: |
-            docker.io/${{ steps.prep.outputs.tag }}
-            ghcr.io/${{ steps.prep.outputs.tag }}
+            docker.io/${{ steps.prep.outputs.image-tag-full }}
+            ghcr.io/${{ steps.prep.outputs.image-tag-full }}
           labels: |
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
-            org.opencontainers.image.title=${{ steps.prep.outputs.title }}
+            org.opencontainers.image.title=${{ steps.prep.outputs.image-tag-branch }}
             org.opencontainers.image.revision=${{ steps.prep.outputs.revision }}
             org.opencontainers.image.source=${{ steps.prep.outputs.source }}
             org.opencontainers.image.vendor=${{ steps.prep.outputs.vendor }}
@@ -178,9 +188,6 @@ jobs:
         registry: [docker.io, ghcr.io]
     needs: [build]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Login to docker.io
         if: (matrix.registry == 'docker.io')
         uses: docker/login-action@v3
@@ -200,22 +207,19 @@ jobs:
       - name: Create Manifests
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
-          VERSION:    ${{ needs.build.outputs.version }}
-          PR_BRANCH:  ${{ needs.build.outputs.pr-branch }}
-          IMAGE:      ${{ matrix.registry }}/${{ github.repository }}
-          TAG:        ${{ github.ref_name }}
-          RUN_NUMBER: ${{ github.run_number }}
-          SHA:        ${{ github.sha }}
+          IMAGE_TAG_FULL_AMD64:     ${{ needs.build.outputs.image-tag-full-amd64 }}
+          IMAGE_TAG_FULL_ARM64:     ${{ needs.build.outputs.image-tag-full-arm64 }}
+          IMAGE_TAG_LATEST:         ${{ needs.build.outputs.image-tag-latest }}
+          IMAGE_TAG_BRANCH:         ${{ needs.build.outputs.image-tag-branch }}
+          IMAGE_TAG_BRANCH_VERSION: ${{ needs.build.outputs.image-tag-branch-version }}
+          IMAGE_TAG_BRANCH_SHA:     ${{ needs.build.outputs.image-tag-branch-sha }}
         run: |
-          SOURCE=${IMAGE}:${TAG}-${SHA:0:7}-${RUN_NUMBER}
-          [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
-          [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
-          echo "${IMAGE}:${TAG}${PR_BRANCH} ${AMD64} ${ARM64}" >> manifest.list
-          echo "${IMAGE}:${TAG}${PR_BRANCH}-${VERSION} ${AMD64} ${ARM64}" >> manifest.list
-          echo "${IMAGE}:${TAG}-${SHA:0:7} ${AMD64} ${ARM64}" >> manifest.list
-          if [[ $(jq -r '.latest // empty' < VERSION.json) == true ]]; then
-            echo "${IMAGE}:latest ${AMD64} ${ARM64}" >> manifest.list
-          fi
+          [[ -f linux-amd64.Dockerfile ]] && AMD64=${IMAGE_TAG_FULL_AMD64}
+          [[ -f linux-arm64.Dockerfile ]] && ARM64=${IMAGE_TAG_FULL_ARM64}
+          echo "${IMAGE_TAG_BRANCH} ${AMD64} ${ARM64}" >> manifest.list
+          echo "${IMAGE_TAG_BRANCH_VERSION} ${AMD64} ${ARM64}" >> manifest.list
+          echo "${IMAGE_TAG_BRANCH_SHA} ${AMD64} ${ARM64}" >> manifest.list
+          [[ -n "${IMAGE_TAG_LATEST}" ]] && echo "${IMAGE_TAG_LATEST} ${AMD64} ${ARM64}" >> manifest.list
           while read manifest; do
             docker manifest create $(awk '{print $1}' <<< ${manifest}) $(awk '{print $2}' <<< ${manifest}) $(awk '{print $3}' <<< ${manifest})
           done < manifest.list
@@ -250,28 +254,29 @@ jobs:
       - name: Update "tags.json" File
         uses: nick-fields/retry@v3
         env:
-          VERSION:        ${{ needs.build.outputs.version }}
-          PR_BRANCH:      ${{ needs.build.outputs.pr-branch }}
-          PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
-          REPO:           ${{ github.repository }}
-          TAG:            ${{ github.ref_name }}
-          SHA:            ${{ github.sha }}
+          PERSONAL_TOKEN:           ${{ secrets.PERSONAL_TOKEN }}
+          REPOSITORY:               ${{ github.repository }}
+          CREATED:                  ${{ needs.build.outputs.created }}
+          IMAGE_TAG_BRANCH:         ${{ needs.build.outputs.image-tag-branch }}
+          IMAGE_TAG_BRANCH_VERSION: ${{ needs.build.outputs.image-tag-branch-version }}
+          IMAGE_TAG_BRANCH_SHA:     ${{ needs.build.outputs.image-tag-branch-sha }}
         with:
           max_attempts: 3
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
-            TAGS="${TAG}${PR_BRANCH},${TAG}${PR_BRANCH}-${VERSION},${TAG}${PR_BRANCH}-${SHA:0:7}"
-            LAST_UPDATED=$(date -u +'%FT%T.%3NZ')
             IS_LATEST=$(jq -r '.latest // false' < VERSION.json)
             DESCRIPTION=$(jq -r '.description // empty' < VERSION.json)
             HIDE=$(jq -r '.hide // false' < VERSION.json)
-            git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPO}.git" masterGit
+            IMAGE_TAG_BRANCH=${IMAGE_TAG_BRANCH/$REPOSITORY:/}
+            IMAGE_TAG_BRANCH_VERSION=${IMAGE_TAG_BRANCH_VERSION/$REPOSITORY:/}
+            IMAGE_TAG_BRANCH_SHA=${IMAGE_TAG_BRANCH_SHA/$REPOSITORY:/}
+            git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY}.git" masterGit
             cd "masterGit" || exit 1
             if [[ ${HIDE} != true ]]; then
               [[ ! -f tags.json ]] && echo "{}" > tags.json
               tags_json=$(cat ./tags.json)
-              jq '.'"${TAG}"'.tags[0] = "'"${TAG}${PR_BRANCH}"'" | .'"${TAG}"'.tags[1] = "'"${TAG}${PR_BRANCH}"'-'"${VERSION}"'" | .'"${TAG}"'.tags[2] = "'"${TAG}${PR_BRANCH}"'-'"${SHA:0:7}"'" | .'"${TAG}"'.last_updated = "'"${LAST_UPDATED}"'" | .'"${TAG}"'.latest = '"${IS_LATEST}"' | .'"${TAG}"'.description = "'"${DESCRIPTION}"'"' <<< "${tags_json}" | jq --sort-keys > tags.json
+              jq '.'"${IMAGE_TAG_BRANCH}"'.tags[0] = "'"${IMAGE_TAG_BRANCH}"'" | .'"${IMAGE_TAG_BRANCH}"'.tags[1] = "'"${IMAGE_TAG_BRANCH_VERSION}"'" | .'"${IMAGE_TAG_BRANCH}"'.tags[2] = "'"${IMAGE_TAG_BRANCH_SHA}"'" | .'"${IMAGE_TAG_BRANCH}"'.last_updated = "'"${CREATED}"'" | .'"${IMAGE_TAG_BRANCH}"'.latest = '"${IS_LATEST}"' | .'"${IMAGE_TAG_BRANCH}"'.description = "'"${DESCRIPTION}"'"' <<< "${tags_json}" | jq --sort-keys > tags.json
             fi
             git add .
             if git commit -m "Update tags.json [skip ci]"; then
@@ -290,15 +295,14 @@ jobs:
       - name: Send Discord Notification
         uses: nick-fields/retry@v3
         env:
-          VERSION:         ${{ needs.build.outputs.version }}
-          PR_BRANCH:       ${{ needs.build.outputs.pr-branch }}
-          STATUS:          ${{ needs.publish.result }}
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          TAG:             ${{ github.ref_name }}
-          COMMIT_MESSAGE:  ${{ github.event.head_commit.message }}
-          RUN_ID:          ${{ github.run_id }}
-          REPOSITORY:      ${{ github.repository }}
-          SHA:             ${{ github.sha }}
+          VERSION:          ${{ needs.build.outputs.version }}
+          STATUS:           ${{ needs.publish.result }}
+          DISCORD_WEBHOOK:  ${{ secrets.DISCORD_WEBHOOK }}
+          COMMIT_MESSAGE:   ${{ github.event.head_commit.message }}
+          RUN_ID:           ${{ github.run_id }}
+          REPOSITORY:       ${{ github.repository }}
+          SHA:              ${{ github.sha }}
+          IMAGE_TAG_BRANCH: ${{ needs.build.outputs.image-tag-branch }}
         with:
           max_attempts: 3
           timeout_minutes: 5
@@ -316,7 +320,7 @@ jobs:
               '${MENTION}'
               "embeds": [
                 {
-                  "title": "'${REPOSITORY}':'${TAG}${PR_BRANCH}'",
+                  "title": "'${IMAGE_TAG_BRANCH}'",
                   "url": "https://github.com/'${REPOSITORY}'/actions/runs/'${RUN_ID}'",
                   "color": '${COLOR:-15158332}',
                   "fields": [
