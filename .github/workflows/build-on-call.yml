@@ -268,8 +268,8 @@ jobs:
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
-            git config --global user.name "github-actions[bot]"
-            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             IMAGE_TAG_BRANCH=${IMAGE_TAG_BRANCH/$REPOSITORY:/}
             IMAGE_TAG_BRANCH_VERSION=${IMAGE_TAG_BRANCH_VERSION/$REPOSITORY:/}
             IMAGE_TAG_BRANCH_SHA=${IMAGE_TAG_BRANCH_SHA/$REPOSITORY:/}
