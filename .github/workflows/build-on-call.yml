@@ -274,6 +274,7 @@ jobs:
               git push
             fi
             jq < tags.json
+          on_retry_command: |
             cd "${GITHUB_WORKSPACE}" || exit 1
             rm -rf "${GITHUB_WORKSPACE:?}/masterGit"
 
