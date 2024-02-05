@@ -112,7 +112,7 @@ jobs:
       - name: List Packages and Smoke Test
         if: (steps.arch-exists.outputs.result == 'ok')
         env:
-          image: ${{ steps.prep.outputs.tag }}
+          image: ${{ steps.prep.outputs.title }}-${{ matrix.architecture }}
           package_version: ${{ steps.prep.outputs.package-version }}
           arch: ${{ matrix.architecture }}
         run: |
