@@ -123,7 +123,7 @@ jobs:
             IMAGE_STATS=${{ steps.prep.outputs.image-stats }}
             ${{ steps.prep.outputs.build-args }}
 
-      - name: List packages, Do test & Inspect
+      - name: List packages & Do test
         if: (steps.arch-exists.outputs.result == 'ok')
         env:
           image: ${{ steps.prep.outputs.tag }}
@@ -151,7 +151,6 @@ jobs:
             curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null
             exit $?
           fi
-          docker image inspect "ghcr.io/${image}" | tee "${package_version}-inspect.log"
 
       - name: Push
         if: (steps.arch-exists.outputs.result == 'ok')
