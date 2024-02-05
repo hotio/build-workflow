@@ -272,9 +272,6 @@ jobs:
             git add .
             if git commit -m "Update tags.json [skip ci]"; then
               git push
-              echo "Updated tags.json!"
-            else
-              echo "There was no update needed!"
             fi
             jq < tags.json
             cd "${GITHUB_WORKSPACE}" || exit 1
@@ -286,6 +283,7 @@ jobs:
     needs: [build, publish]
     steps:
       - name: Send Discord Notification
+        uses: nick-fields/retry@v3
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           TAG: ${{ github.ref_name }}
@@ -293,46 +291,48 @@ jobs:
           BRANCH: ${{ needs.build.outputs.branch }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           STATUS: ${{ needs.publish.result }}
-        shell: bash
-        run: |
-          if [[ "${STATUS}" == "success" ]]; then
-            COLOR="3066993"
-          else
-            MENTION='"content": "<@269648028502196224>",'
-          fi
-          if [[ -z ${COMMIT_MESSAGE} ]]; then
-            COMMIT_MESSAGE="---"
-          fi
-          json='{
-            '${MENTION}'
-            "embeds": [
-              {
-                "title": "'${GITHUB_REPOSITORY}':'${TAG}${BRANCH}'",
-                "url": "https://github.com/'${GITHUB_REPOSITORY}'/actions/runs/'${GITHUB_RUN_ID}'",
-                "color": '${COLOR:-15158332}',
-                "fields": [
-                  {
-                    "name": "Commit Message",
-                    "value": "```'${COMMIT_MESSAGE//\"/\\\"}'```"
+        with:
+          max_attempts: 3
+          timeout_minutes: 5
+          retry_wait_seconds: 30
+          command: |
+            if [[ "${STATUS}" == "success" ]]; then
+              COLOR="3066993"
+            else
+              MENTION='"content": "<@269648028502196224>",'
+            fi
+            if [[ -z ${COMMIT_MESSAGE} ]]; then
+              COMMIT_MESSAGE="---"
+            fi
+            json='{
+              '${MENTION}'
+              "embeds": [
+                {
+                  "title": "'${GITHUB_REPOSITORY}':'${TAG}${BRANCH}'",
+                  "url": "https://github.com/'${GITHUB_REPOSITORY}'/actions/runs/'${GITHUB_RUN_ID}'",
+                  "color": '${COLOR:-15158332}',
+                  "fields": [
+                    {
+                      "name": "Commit Message",
+                      "value": "```'${COMMIT_MESSAGE//\"/\\\"}'```"
+                    },
+                    {
+                      "name": "Commit SHA",
+                      "value": "['${GITHUB_SHA:0:7}'](https://github.com/'${GITHUB_REPOSITORY}'/commit/'${GITHUB_SHA}')",
+                      "inline": true
+                    },
+                    {
+                      "name": "Version",
+                      "value": "'${VERSION:----}'",
+                      "inline": true
+                    }
+                  ],
+                  "footer": {
+                    "text": "Powered by GitHub Actions"
                   },
-                  {
-                    "name": "Commit SHA",
-                    "value": "['${GITHUB_SHA:0:7}'](https://github.com/'${GITHUB_REPOSITORY}'/commit/'${GITHUB_SHA}')",
-                    "inline": true
-                  },
-                  {
-                    "name": "Version",
-                    "value": "'${VERSION:----}'",
-                    "inline": true
-                  }
-                ],
-                "footer": {
-                  "text": "Powered by GitHub Actions"
-                },
-                "timestamp": "'$(date -u +'%FT%T.%3NZ')'"
-              }
-            ]
-          }'
-          curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
-          echo "Tried sending:"
-          jq <<< "${json}"
+                  "timestamp": "'$(date -u +'%FT%T.%3NZ')'"
+                }
+              ]
+            }'
+            jq <<< "${json}"
+            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
