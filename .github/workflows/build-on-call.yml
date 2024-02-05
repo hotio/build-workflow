@@ -206,12 +206,12 @@ jobs:
       - name: Create Manifests
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
-          IMAGE_TAG_FULL_AMD64:     ${{ needs.build.outputs.image-tag-full-amd64 }}
-          IMAGE_TAG_FULL_ARM64:     ${{ needs.build.outputs.image-tag-full-arm64 }}
-          IMAGE_TAG_LATEST:         ${{ needs.build.outputs.image-tag-latest }}
-          IMAGE_TAG_BRANCH:         ${{ needs.build.outputs.image-tag-branch }}
-          IMAGE_TAG_BRANCH_VERSION: ${{ needs.build.outputs.image-tag-branch-version }}
-          IMAGE_TAG_BRANCH_SHA:     ${{ needs.build.outputs.image-tag-branch-sha }}
+          IMAGE_TAG_FULL_AMD64:     ${{ matrix.registry }}/${{ needs.build.outputs.image-tag-full-amd64 }}
+          IMAGE_TAG_FULL_ARM64:     ${{ matrix.registry }}/${{ needs.build.outputs.image-tag-full-arm64 }}
+          IMAGE_TAG_LATEST:         ${{ matrix.registry }}/${{ needs.build.outputs.image-tag-latest }}
+          IMAGE_TAG_BRANCH:         ${{ matrix.registry }}/${{ needs.build.outputs.image-tag-branch }}
+          IMAGE_TAG_BRANCH_VERSION: ${{ matrix.registry }}/${{ needs.build.outputs.image-tag-branch-version }}
+          IMAGE_TAG_BRANCH_SHA:     ${{ matrix.registry }}/${{ needs.build.outputs.image-tag-branch-sha }}
         run: |
           echo "${IMAGE_TAG_BRANCH} ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
           echo "${IMAGE_TAG_BRANCH_VERSION} ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
