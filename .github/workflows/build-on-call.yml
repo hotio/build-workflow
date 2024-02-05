@@ -73,6 +73,7 @@ jobs:
           REPO_OWNER: ${{ github.repository_owner }}
         run: |
           VERSION=$(jq -r '.version // empty' < VERSION.json)
+          VERSION=${VERSION//\~/-}
           [[ -z ${VERSION} ]] && VERSION=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y%m%d%H%M%S')
           BRANCH=$(jq -r '.branch // empty' < VERSION.json)
           [[ -n ${BRANCH} ]] && BRANCH=-${BRANCH}
@@ -194,40 +195,39 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Manifests
-        uses: nick-fields/retry@v3
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
           IMAGE: ${{ matrix.registry }}/${{ github.repository }}
           TAG: ${{ github.ref_name }}
           VERSION: ${{ needs.build.outputs.version }}
           BRANCH: ${{ needs.build.outputs.branch }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          SOURCE=${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${RUN_NUMBER}
+          [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
+          [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
+          echo "${IMAGE}:${TAG}${BRANCH}            ${AMD64} ${ARM64}" >> manifest.list
+          echo "${IMAGE}:${TAG}${BRANCH}-${VERSION} ${AMD64} ${ARM64}" >> manifest.list
+          echo "${IMAGE}:${TAG}-${GITHUB_SHA:0:7}   ${AMD64} ${ARM64}" >> manifest.list
+          if [[ $(jq -r '.latest // empty' < VERSION.json) == true ]]; then
+            echo "${IMAGE}:latest ${AMD64} ${ARM64}" >> manifest.list
+          fi
+          for manifest in $(cat manifest.list); do
+            docker manifest create ${manifest}
+          done
+
+      - name: Push Manifests
+        uses: nick-fields/retry@v3
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled
         with:
           max_attempts: 3
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
-            SOURCE=${{ env.IMAGE }}:${{ env.TAG }}-${GITHUB_SHA:0:7}-${{ github.run_number }}
-            [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
-            [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
-            docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64}
-            docker manifest push   ${IMAGE}:${TAG}${BRANCH}
-            docker manifest create ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} ${AMD64} ${ARM64}
-            docker manifest push   ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-}
-            docker manifest create ${IMAGE}:${TAG}-${GITHUB_SHA:0:7} ${AMD64} ${ARM64}
-            docker manifest push   ${IMAGE}:${TAG}-${GITHUB_SHA:0:7}
-            IS_LATEST=$(jq -r '.latest // empty' < VERSION.json)
-            if [[ ${IS_LATEST} == true ]]; then
-              docker manifest create ${IMAGE}:latest ${AMD64} ${ARM64}
-              docker manifest push   ${IMAGE}:latest
-            fi
-          on_retry_command: |
-            docker manifest rm     ${IMAGE}:${TAG}${BRANCH} || true
-            docker manifest rm     ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} || true
-            docker manifest rm     ${IMAGE}:${TAG}-${GITHUB_SHA:0:7} || true
-            IS_LATEST=$(jq -r '.latest // empty' < VERSION.json)
-            if [[ ${IS_LATEST} == true ]]; then
-              docker manifest rm     ${IMAGE}:latest || true
-            fi
+            for manifest in $(awk '{print $1}' < manifest.list); do
+              docker manifest push ${manifest}
+            done
 
   tags:
     runs-on: ubuntu-22.04
@@ -256,7 +256,7 @@ jobs:
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
-            TAGS="${TAG}${BRANCH},${TAG}${BRANCH}-${VERSION//\~/-},${TAG}${BRANCH}-${GITHUB_SHA:0:7}"
+            TAGS="${TAG}${BRANCH},${TAG}${BRANCH}-${VERSION},${TAG}${BRANCH}-${GITHUB_SHA:0:7}"
             LAST_UPDATED=$(date -u +'%FT%T.%3NZ')
             IS_LATEST=$(jq -r '.latest // false' < VERSION.json)
             DESCRIPTION=$(jq -r '.description // empty' < VERSION.json)
@@ -266,7 +266,7 @@ jobs:
             if [[ ${HIDE} != true ]]; then
               [[ ! -f tags.json ]] && echo "{}" > tags.json
               tags_json=$(cat ./tags.json)
-              jq '.'"${TAG}"'.tags[0] = "'"${TAG}${BRANCH}"'" | .'"${TAG}"'.tags[1] = "'"${TAG}${BRANCH}"'-'"${VERSION//\~/-}"'" | .'"${TAG}"'.tags[2] = "'"${TAG}${BRANCH}"'-'"${GITHUB_SHA:0:7}"'" | .'"${TAG}"'.last_updated = "'"${LAST_UPDATED}"'" | .'"${TAG}"'.latest = '"${IS_LATEST}"' | .'"${TAG}"'.description = "'"${DESCRIPTION}"'"' <<< "${tags_json}" | jq --sort-keys > tags.json
+              jq '.'"${TAG}"'.tags[0] = "'"${TAG}${BRANCH}"'" | .'"${TAG}"'.tags[1] = "'"${TAG}${BRANCH}"'-'"${VERSION}"'" | .'"${TAG}"'.tags[2] = "'"${TAG}${BRANCH}"'-'"${GITHUB_SHA:0:7}"'" | .'"${TAG}"'.last_updated = "'"${LAST_UPDATED}"'" | .'"${TAG}"'.latest = '"${IS_LATEST}"' | .'"${TAG}"'.description = "'"${DESCRIPTION}"'"' <<< "${tags_json}" | jq --sort-keys > tags.json
             fi
             git add .
             if git commit -m "Update tags.json [skip ci]"; then
