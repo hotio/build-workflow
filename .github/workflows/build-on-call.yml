@@ -114,13 +114,14 @@ jobs:
           image: ${{ steps.prep.outputs.title }}-${{ matrix.architecture }}
           package_version: ${{ steps.prep.outputs.package-version }}
           arch: ${{ matrix.architecture }}
+          platform: ${{ steps.prep.outputs.platform }}
         run: |
           upstream_tag=$(jq -r '.upstream_tag' < ./VERSION.json)
           upstream_image=$(jq -r '.upstream_image' < ./VERSION.json)
           if [[ ${upstream_tag} == alpine* || ${upstream_image} == alpine* ]]; then
-            docker run --rm --entrypoint="" "${image}" apk -vv info | sort > "${package_version}-packages.log" 2>&1
+            docker run --platform="${platform}" --rm --entrypoint="" "${image}" apk -vv info | sort > "${package_version}-packages.log" 2>&1
           else
-            docker run --rm --entrypoint="" "${image}" apt list --installed > "${package_version}-packages.log" 2>&1
+            docker run --platform="${platform}" --rm --entrypoint="" "${image}" apt list --installed > "${package_version}-packages.log" 2>&1
           fi
           test_url=$(jq -r '.test_url' < ./VERSION.json)
           test_amd64=$(jq -r '.test_arm64' < ./VERSION.json)
@@ -130,7 +131,7 @@ jobs:
             [[ ${arch} == linux-arm64 ]] && [[ ${test_arm64} == true ]] && do_test=true
           fi
           if [[ ${do_test} == true ]]; then
-            docker run --network host -d --name service "${image}"
+            docker run --platform="${platform}" --network host -d --name service "${image}"
             currenttime=$(date +%s); maxtime=$((currenttime+120)); while (! curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null) && [[ "$currenttime" -lt "$maxtime" ]]; do sleep 1; currenttime=$(date +%s); done
             docker logs service > "${package_version}-test.log" 2>&1
             curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null
@@ -213,7 +214,7 @@ jobs:
             echo "${IMAGE}:latest ${AMD64} ${ARM64}" >> manifest.list
           fi
           while read manifest; do
-            echo "docker manifest create $(awk '{print $1}' <<< ${manifest}) $(awk '{print $2}' <<< ${manifest}) $(awk '{print $3}' <<< ${manifest})"
+            docker manifest create $(awk '{print $1}' <<< ${manifest}) $(awk '{print $2}' <<< ${manifest}) $(awk '{print $3}' <<< ${manifest})
           done < manifest.list
 
       - name: Push Manifests
@@ -225,9 +226,9 @@ jobs:
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
-            for manifest in $(cat manifest.list); do
-              docker manifest push "$(awk '{print $1}' <<< ${manifest})"
-            done
+            while read manifest; do
+              docker manifest push $(awk '{print $1}' <<< ${manifest})
+            done < manifest.list
 
   tags:
     runs-on: ubuntu-22.04
