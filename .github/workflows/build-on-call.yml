@@ -93,8 +93,7 @@ jobs:
           echo "package-version=${BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
           echo "image-tag-cache=${REPOSITORY}:${BRANCH}${PR_BRANCH}-buildcache-${ARCHITECTURE}" >> $GITHUB_OUTPUT
           echo "image-tag-full=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${ARCHITECTURE}" >> $GITHUB_OUTPUT
-          echo "image-tag-full-amd64=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-linux-amd64" >> $GITHUB_OUTPUT
-          echo "image-tag-full-arm64=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-linux-arm64" >> $GITHUB_OUTPUT
+          echo "image-tag-full-${ARCHITECTURE/linux-/}=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${ARCHITECTURE}" >> $GITHUB_OUTPUT
           echo "image-tag-branch=${REPOSITORY}:${BRANCH}${PR_BRANCH}" >> $GITHUB_OUTPUT
           echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION}" >> $GITHUB_OUTPUT
           echo "image-tag-branch-sha=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
@@ -214,12 +213,10 @@ jobs:
           IMAGE_TAG_BRANCH_VERSION: ${{ needs.build.outputs.image-tag-branch-version }}
           IMAGE_TAG_BRANCH_SHA:     ${{ needs.build.outputs.image-tag-branch-sha }}
         run: |
-          [[ -f linux-amd64.Dockerfile ]] && AMD64=${IMAGE_TAG_FULL_AMD64}
-          [[ -f linux-arm64.Dockerfile ]] && ARM64=${IMAGE_TAG_FULL_ARM64}
-          echo "${IMAGE_TAG_BRANCH} ${AMD64} ${ARM64}" >> manifest.list
-          echo "${IMAGE_TAG_BRANCH_VERSION} ${AMD64} ${ARM64}" >> manifest.list
-          echo "${IMAGE_TAG_BRANCH_SHA} ${AMD64} ${ARM64}" >> manifest.list
-          [[ -n "${IMAGE_TAG_LATEST}" ]] && echo "${IMAGE_TAG_LATEST} ${AMD64} ${ARM64}" >> manifest.list
+          echo "${IMAGE_TAG_BRANCH} ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+          echo "${IMAGE_TAG_BRANCH_VERSION} ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+          echo "${IMAGE_TAG_BRANCH_SHA} ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+          [[ -n "${IMAGE_TAG_LATEST}" ]] && echo "${IMAGE_TAG_LATEST} ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
           while read manifest; do
             docker manifest create $(awk '{print $1}' <<< ${manifest}) $(awk '{print $2}' <<< ${manifest}) $(awk '{print $3}' <<< ${manifest})
           done < manifest.list
