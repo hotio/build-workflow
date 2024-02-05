@@ -87,9 +87,11 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
           echo "package-version=${TAG}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
-          echo "image-stats=$(jq '.app = "'"${GITHUB_REPOSITORY/${REPO_OWNER}\//}"'" | .image = "'"${GITHUB_REPOSITORY}:${TAG}"'" | .revision = "'"${GITHUB_SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
-          jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
+            jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
+            echo "BUILD_ARCHITECTURE=${ARCHITECTURE}" >> $GITHUB_OUTPUT
+            echo "PACKAGE_VERSION=${TAG}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "IMAGE_STATS=$(jq '.app = "'"${GITHUB_REPOSITORY/${REPO_OWNER}\//}"'" | .image = "'"${GITHUB_REPOSITORY}:${TAG}"'" | .revision = "'"${GITHUB_SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Build Image
@@ -103,10 +105,6 @@ jobs:
           cache-to: type=gha,mode=max
           tags: ${{ steps.prep.outputs.title }}-${{ matrix.architecture }}
           build-args: |
-            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-            BUILD_ARCHITECTURE=${{ matrix.architecture }}
-            PACKAGE_VERSION=${{ steps.prep.outputs.package-version }}
-            IMAGE_STATS=${{ steps.prep.outputs.image-stats }}
             ${{ steps.prep.outputs.build-args }}
 
       - name: List Packages and Smoke Test
@@ -157,10 +155,6 @@ jobs:
             org.opencontainers.image.url=${{ steps.prep.outputs.url }}
             org.opencontainers.image.version=${{ steps.prep.outputs.version }}
           build-args: |
-            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-            BUILD_ARCHITECTURE=${{ matrix.architecture }}
-            PACKAGE_VERSION=${{ steps.prep.outputs.package-version }}
-            IMAGE_STATS=${{ steps.prep.outputs.image-stats }}
             ${{ steps.prep.outputs.build-args }}
 
       - name: Upload Results
