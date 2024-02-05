@@ -206,7 +206,7 @@ jobs:
         run: |
           SOURCE=${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${RUN_NUMBER}
           [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
-          [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
+          [[ ! -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
           echo "${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64}" >> manifest.list
           echo "${IMAGE}:${TAG}${BRANCH}-${VERSION} ${AMD64} ${ARM64}" >> manifest.list
           echo "${IMAGE}:${TAG}-${GITHUB_SHA:0:7} ${AMD64} ${ARM64}" >> manifest.list
