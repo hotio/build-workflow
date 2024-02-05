@@ -212,9 +212,9 @@ jobs:
           if [[ $(jq -r '.latest // empty' < VERSION.json) == true ]]; then
             echo "${IMAGE}:latest ${AMD64} ${ARM64}" >> manifest.list
           fi
-          for manifest in $(cat manifest.list); do
+          while read manifest; do
             echo "docker manifest create $(awk '{print $1}' <<< ${manifest}) $(awk '{print $2}' <<< ${manifest}) $(awk '{print $3}' <<< ${manifest})"
-          done
+          done < manifest.list
 
       - name: Push Manifests
         uses: nick-fields/retry@v3
