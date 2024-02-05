@@ -27,7 +27,6 @@ jobs:
     outputs:
       version: ${{ steps.prep.outputs.version }}
       branch: ${{ steps.prep.outputs.branch }}
-      package-version: ${{ steps.prep.outputs.package-version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
