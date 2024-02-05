@@ -119,9 +119,9 @@ jobs:
           upstream_tag=$(jq -r '.upstream_tag' < ./VERSION.json)
           upstream_image=$(jq -r '.upstream_image' < ./VERSION.json)
           if [[ ${upstream_tag} == alpine* || ${upstream_image} == alpine* ]]; then
-            docker run --rm --entrypoint="" "ghcr.io/${image}" apk -vv info | sort > "${package_version}-packages.log" 2>&1
+            docker run --rm --entrypoint="" "${image}" apk -vv info | sort > "${package_version}-packages.log" 2>&1
           else
-            docker run --rm --entrypoint="" "ghcr.io/${image}" apt list --installed > "${package_version}-packages.log" 2>&1
+            docker run --rm --entrypoint="" "${image}" apt list --installed > "${package_version}-packages.log" 2>&1
           fi
           test_url=$(jq -r '.test_url' < ./VERSION.json)
           test_amd64=$(jq -r '.test_arm64' < ./VERSION.json)
@@ -131,7 +131,7 @@ jobs:
             [[ ${arch} == linux-arm64 ]] && [[ ${test_arm64} == true ]] && do_test=true
           fi
           if [[ ${do_test} == true ]]; then
-            docker run --network host -d --name service "ghcr.io/${image}"
+            docker run --network host -d --name service "${image}"
             currenttime=$(date +%s); maxtime=$((currenttime+120)); while (! curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null) && [[ "$currenttime" -lt "$maxtime" ]]; do sleep 1; currenttime=$(date +%s); done
             docker logs service > "${package_version}-test.log" 2>&1
             curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null
