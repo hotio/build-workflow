@@ -27,6 +27,9 @@ jobs:
     outputs:
       version:                  ${{ steps.prep.outputs.version }}
       created:                  ${{ steps.prep.outputs.created }}
+      is-latest:                ${{ steps.prep.outputs.is-latest }}
+      description:              ${{ steps.prep.outputs.description }}
+      hide:                     ${{ steps.prep.outputs.hide }}
       image-tag-full-amd64:     ${{ steps.prep.outputs.image-tag-full-amd64 }}
       image-tag-full-arm64:     ${{ steps.prep.outputs.image-tag-full-arm64 }}
       image-tag-latest:         ${{ steps.prep.outputs.image-tag-latest }}
@@ -83,6 +86,9 @@ jobs:
           [[ -z ${VERSION} ]] && VERSION=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y%m%d%H%M%S')
           PR_BRANCH=$(jq -r '.branch // empty' < VERSION.json)
           [[ -n ${PR_BRANCH} ]] && PR_BRANCH=-${PR_BRANCH}
+          echo "is-latest=$(jq -r '.latest // false' < VERSION.json)" >> $GITHUB_OUTPUT
+          echo "description=$(jq -r '.description // empty' < VERSION.json)" >> $GITHUB_OUTPUT
+          echo "hide=$(jq -r '.hide // false' < VERSION.json)" >> $GITHUB_OUTPUT
           echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
           echo "revision=${SHA}" >> $GITHUB_OUTPUT
           echo "source=${SERVER_URL}/${REPOSITORY}/tree/${BRANCH}" >> $GITHUB_OUTPUT
@@ -243,18 +249,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Git Config
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        with:
+          ref: master
 
       - name: Update "tags.json" File
         uses: nick-fields/retry@v3
         env:
-          PERSONAL_TOKEN:           ${{ secrets.PERSONAL_TOKEN }}
           REPOSITORY:               ${{ github.repository }}
           CREATED:                  ${{ needs.build.outputs.created }}
+          IS_LATEST:                ${{ needs.build.outputs.is-latest }}
+          DESCRIPTION:              ${{ needs.build.outputs.description }}
+          HIDE:                     ${{ needs.build.outputs.hide }}
           IMAGE_TAG_BRANCH:         ${{ needs.build.outputs.image-tag-branch }}
           IMAGE_TAG_BRANCH_VERSION: ${{ needs.build.outputs.image-tag-branch-version }}
           IMAGE_TAG_BRANCH_SHA:     ${{ needs.build.outputs.image-tag-branch-sha }}
@@ -263,27 +268,21 @@ jobs:
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
-            IS_LATEST=$(jq -r '.latest // false' < VERSION.json)
-            DESCRIPTION=$(jq -r '.description // empty' < VERSION.json)
-            HIDE=$(jq -r '.hide // false' < VERSION.json)
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
             IMAGE_TAG_BRANCH=${IMAGE_TAG_BRANCH/$REPOSITORY:/}
             IMAGE_TAG_BRANCH_VERSION=${IMAGE_TAG_BRANCH_VERSION/$REPOSITORY:/}
             IMAGE_TAG_BRANCH_SHA=${IMAGE_TAG_BRANCH_SHA/$REPOSITORY:/}
-            git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY}.git" masterGit
-            cd "masterGit" || exit 1
+            [[ ! -f tags.json ]] && echo "{}" > tags.json
             if [[ ${HIDE} != true ]]; then
-              [[ ! -f tags.json ]] && echo "{}" > tags.json
-              tags_json=$(cat ./tags.json)
+              tags_json=$(cat tags.json)
               jq '.'"${IMAGE_TAG_BRANCH}"'.tags[0] = "'"${IMAGE_TAG_BRANCH}"'" | .'"${IMAGE_TAG_BRANCH}"'.tags[1] = "'"${IMAGE_TAG_BRANCH_VERSION}"'" | .'"${IMAGE_TAG_BRANCH}"'.tags[2] = "'"${IMAGE_TAG_BRANCH_SHA}"'" | .'"${IMAGE_TAG_BRANCH}"'.last_updated = "'"${CREATED}"'" | .'"${IMAGE_TAG_BRANCH}"'.latest = '"${IS_LATEST}"' | .'"${IMAGE_TAG_BRANCH}"'.description = "'"${DESCRIPTION}"'"' <<< "${tags_json}" | jq --sort-keys > tags.json
             fi
+            jq < tags.json
             git add .
             if git commit -m "Update tags.json [skip ci]"; then
               git push
             fi
-            jq < tags.json
-          on_retry_command: |
-            cd .. || exit 1
-            rm -rf "masterGit"
 
   notify:
     runs-on: ubuntu-22.04
