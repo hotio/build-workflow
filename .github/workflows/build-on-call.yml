@@ -272,7 +272,11 @@ jobs:
             git add .
             if git commit -m "Update tags.json [skip ci]"; then
               git push
+              echo "Updated tags.json!"
+            else
+              echo "There was no update needed!"
             fi
+            jq < tags.json
             cd "${GITHUB_WORKSPACE}" || exit 1
             rm -rf "${GITHUB_WORKSPACE:?}/masterGit"
 
@@ -330,3 +334,5 @@ jobs:
             ]
           }'
           curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
+          echo "Tried sending:"
+          jq <<< "${json}"
