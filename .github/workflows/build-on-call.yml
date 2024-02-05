@@ -151,7 +151,7 @@ jobs:
             curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null
             exit $?
           fi
-          docker image inspect "ghcr.io/${image}" > "${package_version}-inspect.log" 2>&1
+          docker image inspect "ghcr.io/${image}" | tee "${package_version}-inspect.log"
 
       - name: Push
         if: (steps.arch-exists.outputs.result == 'ok')
