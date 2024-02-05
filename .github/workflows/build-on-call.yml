@@ -101,7 +101,7 @@ jobs:
           file: ./${{ matrix.architecture }}.Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: ${{ steps.prep.outputs.revision }}-${{ steps.prep.outputs.platform }}-testbuild
+          tags: ${{ steps.prep.outputs.tag }}
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
             BUILD_ARCHITECTURE=${{ matrix.architecture }}
@@ -112,7 +112,7 @@ jobs:
       - name: List Packages and Smoke Test
         if: (steps.arch-exists.outputs.result == 'ok')
         env:
-          image: ${{ steps.prep.outputs.revision }}-${{ steps.prep.outputs.platform }}-testbuild
+          image: ${{ steps.prep.outputs.tag }}
           package_version: ${{ steps.prep.outputs.package-version }}
           arch: ${{ matrix.architecture }}
         run: |
