@@ -26,7 +26,7 @@ jobs:
     needs: [shellcheck]
     outputs:
       version: ${{ steps.prep.outputs.version }}
-      branch:  ${{ steps.prep.outputs.branch }}
+      pr-branch:  ${{ steps.prep.outputs.pr-branch }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,8 +75,8 @@ jobs:
           VERSION=$(jq -r '.version // empty' < VERSION.json)
           VERSION=${VERSION//\~/-}
           [[ -z ${VERSION} ]] && VERSION=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y%m%d%H%M%S')
-          BRANCH=$(jq -r '.branch // empty' < VERSION.json)
-          [[ -n ${BRANCH} ]] && BRANCH=-${BRANCH}
+          PR_BRANCH=$(jq -r '.branch // empty' < VERSION.json)
+          [[ -n ${PR_BRANCH} ]] && PR_BRANCH=-${PR_BRANCH}
           echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
           echo "title=${REPOSITORY}:${TAG}" >> $GITHUB_OUTPUT
           echo "revision=${SHA}" >> $GITHUB_OUTPUT
@@ -86,7 +86,7 @@ jobs:
           echo "platform=${ARCHITECTURE//-/\/}" >> $GITHUB_OUTPUT
           echo "tag=${REPOSITORY}:${TAG}-${SHA:0:7}-${RUN_NUMBER}-${ARCHITECTURE}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+          echo "pr-branch=${PR_BRANCH}" >> $GITHUB_OUTPUT
           echo "package-version=${TAG}-${SHA:0:7}" >> $GITHUB_OUTPUT
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
             jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
@@ -201,7 +201,7 @@ jobs:
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
           VERSION:    ${{ needs.build.outputs.version }}
-          BRANCH:     ${{ needs.build.outputs.branch }}
+          PR_BRANCH:  ${{ needs.build.outputs.pr-branch }}
           IMAGE:      ${{ matrix.registry }}/${{ github.repository }}
           TAG:        ${{ github.ref_name }}
           RUN_NUMBER: ${{ github.run_number }}
@@ -210,8 +210,8 @@ jobs:
           SOURCE=${IMAGE}:${TAG}-${SHA:0:7}-${RUN_NUMBER}
           [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
           [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
-          echo "${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64}" >> manifest.list
-          echo "${IMAGE}:${TAG}${BRANCH}-${VERSION} ${AMD64} ${ARM64}" >> manifest.list
+          echo "${IMAGE}:${TAG}${PR_BRANCH} ${AMD64} ${ARM64}" >> manifest.list
+          echo "${IMAGE}:${TAG}${PR_BRANCH}-${VERSION} ${AMD64} ${ARM64}" >> manifest.list
           echo "${IMAGE}:${TAG}-${SHA:0:7} ${AMD64} ${ARM64}" >> manifest.list
           if [[ $(jq -r '.latest // empty' < VERSION.json) == true ]]; then
             echo "${IMAGE}:latest ${AMD64} ${ARM64}" >> manifest.list
@@ -251,7 +251,7 @@ jobs:
         uses: nick-fields/retry@v3
         env:
           VERSION:        ${{ needs.build.outputs.version }}
-          BRANCH:         ${{ needs.build.outputs.branch }}
+          PR_BRANCH:      ${{ needs.build.outputs.pr-branch }}
           PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
           REPO:           ${{ github.repository }}
           TAG:            ${{ github.ref_name }}
@@ -261,7 +261,7 @@ jobs:
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
-            TAGS="${TAG}${BRANCH},${TAG}${BRANCH}-${VERSION},${TAG}${BRANCH}-${SHA:0:7}"
+            TAGS="${TAG}${PR_BRANCH},${TAG}${PR_BRANCH}-${VERSION},${TAG}${PR_BRANCH}-${SHA:0:7}"
             LAST_UPDATED=$(date -u +'%FT%T.%3NZ')
             IS_LATEST=$(jq -r '.latest // false' < VERSION.json)
             DESCRIPTION=$(jq -r '.description // empty' < VERSION.json)
@@ -271,7 +271,7 @@ jobs:
             if [[ ${HIDE} != true ]]; then
               [[ ! -f tags.json ]] && echo "{}" > tags.json
               tags_json=$(cat ./tags.json)
-              jq '.'"${TAG}"'.tags[0] = "'"${TAG}${BRANCH}"'" | .'"${TAG}"'.tags[1] = "'"${TAG}${BRANCH}"'-'"${VERSION}"'" | .'"${TAG}"'.tags[2] = "'"${TAG}${BRANCH}"'-'"${SHA:0:7}"'" | .'"${TAG}"'.last_updated = "'"${LAST_UPDATED}"'" | .'"${TAG}"'.latest = '"${IS_LATEST}"' | .'"${TAG}"'.description = "'"${DESCRIPTION}"'"' <<< "${tags_json}" | jq --sort-keys > tags.json
+              jq '.'"${TAG}"'.tags[0] = "'"${TAG}${PR_BRANCH}"'" | .'"${TAG}"'.tags[1] = "'"${TAG}${PR_BRANCH}"'-'"${VERSION}"'" | .'"${TAG}"'.tags[2] = "'"${TAG}${PR_BRANCH}"'-'"${SHA:0:7}"'" | .'"${TAG}"'.last_updated = "'"${LAST_UPDATED}"'" | .'"${TAG}"'.latest = '"${IS_LATEST}"' | .'"${TAG}"'.description = "'"${DESCRIPTION}"'"' <<< "${tags_json}" | jq --sort-keys > tags.json
             fi
             git add .
             if git commit -m "Update tags.json [skip ci]"; then
@@ -291,7 +291,7 @@ jobs:
         uses: nick-fields/retry@v3
         env:
           VERSION:         ${{ needs.build.outputs.version }}
-          BRANCH:          ${{ needs.build.outputs.branch }}
+          PR_BRANCH:       ${{ needs.build.outputs.pr-branch }}
           STATUS:          ${{ needs.publish.result }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           TAG:             ${{ github.ref_name }}
@@ -316,7 +316,7 @@ jobs:
               '${MENTION}'
               "embeds": [
                 {
-                  "title": "'${REPOSITORY}':'${TAG}${BRANCH}'",
+                  "title": "'${REPOSITORY}':'${TAG}${PR_BRANCH}'",
                   "url": "https://github.com/'${REPOSITORY}'/actions/runs/'${RUN_ID}'",
                   "color": '${COLOR:-15158332}',
                   "fields": [
