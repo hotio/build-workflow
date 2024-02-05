@@ -87,7 +87,7 @@ jobs:
           echo "revision=${SHA}" >> $GITHUB_OUTPUT
           echo "source=${SERVER_URL}/${REPOSITORY}/tree/${BRANCH}" >> $GITHUB_OUTPUT
           echo "vendor=${REPOSITORY_OWNER}" >> $GITHUB_OUTPUT
-          echo "url=${SERVER_URL}/${REPOSITORY}/blob/master/README.md" >> $GITHUB_OUTPUT
+          echo "url=https://hotio.dev/containers/${REPOSITORY/${REPOSITORY_OWNER}\//}" >> $GITHUB_OUTPUT
           echo "platform=${ARCHITECTURE//-/\/}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "package-version=${BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
