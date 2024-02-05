@@ -102,7 +102,7 @@ jobs:
             jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
             echo "BUILD_ARCHITECTURE=${ARCHITECTURE}" >> $GITHUB_OUTPUT
             echo "PACKAGE_VERSION=${BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
-            echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${BRANCH}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
+            echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${BRANCH}${PR_BRANCH}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Build Image
