@@ -213,7 +213,7 @@ jobs:
             echo "${IMAGE}:latest ${AMD64} ${ARM64}" >> manifest.list
           fi
           for manifest in $(cat manifest.list); do
-            docker manifest create ${manifest}
+            docker manifest create $(echo ${manifest})
           done
 
       - name: Push Manifests
@@ -226,7 +226,7 @@ jobs:
           retry_wait_seconds: 30
           command: |
             for manifest in $(awk '{print $1}' < manifest.list); do
-              docker manifest push ${manifest}
+              docker manifest push "${manifest}"
             done
 
   tags:
