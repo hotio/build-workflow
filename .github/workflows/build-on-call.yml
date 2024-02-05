@@ -72,6 +72,10 @@ jobs:
           ARCHITECTURE: ${{ matrix.architecture }}
           REPO_OWNER: ${{ github.repository_owner }}
         run: |
+          VERSION=$(jq -r '.version // empty' < VERSION.json)
+          [[ -z ${VERSION} ]] && VERSION=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y%m%d%H%M%S')
+          BRANCH=$(jq -r '.branch // empty' < VERSION.json)
+          [[ -n ${BRANCH} ]] && BRANCH=-${BRANCH}
           echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
           echo "title=${GITHUB_REPOSITORY}:${TAG}" >> $GITHUB_OUTPUT
           echo "revision=${GITHUB_SHA}" >> $GITHUB_OUTPUT
@@ -80,20 +84,13 @@ jobs:
           echo "url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/master/README.md" >> $GITHUB_OUTPUT
           echo "platform=${ARCHITECTURE//-/\/}" >> $GITHUB_OUTPUT
           echo "tag=${GITHUB_REPOSITORY}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}-${ARCHITECTURE}" >> $GITHUB_OUTPUT
-          VERSION=$(jq -r '.version // empty' < VERSION.json)
-          if [[ -z ${VERSION} ]]; then
-            VERSION=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y%m%d%H%M%S')
-          fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          BRANCH=$(jq -r '.branch // empty' < VERSION.json)
-          if [[ -n ${BRANCH} ]]; then
-            echo "branch=-${BRANCH}" >> $GITHUB_OUTPUT
-          fi
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+          echo "package-version=${TAG}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+          echo "image-stats=$(jq '.app = "'"${GITHUB_REPOSITORY/${REPO_OWNER}\//}"'" | .image = "'"${GITHUB_REPOSITORY}:${TAG}"'" | .revision = "'"${GITHUB_SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
           jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
-          echo "package-version=${TAG}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
-          echo "image-stats=$(jq '.app = "'"${GITHUB_REPOSITORY/${REPO_OWNER}\//}"'" | .image = "'"${GITHUB_REPOSITORY}:${TAG}"'" | .revision = "'"${GITHUB_SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
 
       - name: Build Image
         if: (steps.arch-exists.outputs.result == 'ok')
@@ -104,17 +101,7 @@ jobs:
           file: ./${{ matrix.architecture }}.Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: |
-            docker.io/${{ steps.prep.outputs.tag }}
-            ghcr.io/${{ steps.prep.outputs.tag }}
-          labels: |
-            org.opencontainers.image.created=${{ steps.prep.outputs.created }}
-            org.opencontainers.image.title=${{ steps.prep.outputs.title }}
-            org.opencontainers.image.revision=${{ steps.prep.outputs.revision }}
-            org.opencontainers.image.source=${{ steps.prep.outputs.source }}
-            org.opencontainers.image.vendor=${{ steps.prep.outputs.vendor }}
-            org.opencontainers.image.url=${{ steps.prep.outputs.url }}
-            org.opencontainers.image.version=${{ steps.prep.outputs.version }}
+          tags: ${{ steps.prep.outputs.revision }}-${{ steps.prep.outputs.platform }}-testbuild
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
             BUILD_ARCHITECTURE=${{ matrix.architecture }}
@@ -125,7 +112,7 @@ jobs:
       - name: List Packages and Smoke Test
         if: (steps.arch-exists.outputs.result == 'ok')
         env:
-          image: ${{ steps.prep.outputs.tag }}
+          image: ${{ steps.prep.outputs.revision }}-${{ steps.prep.outputs.platform }}-testbuild
           package_version: ${{ steps.prep.outputs.package-version }}
           arch: ${{ matrix.architecture }}
         run: |
@@ -158,8 +145,6 @@ jobs:
           push: true
           platforms: ${{ steps.prep.outputs.platform }}
           file: ./${{ matrix.architecture }}.Dockerfile
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           tags: |
             docker.io/${{ steps.prep.outputs.tag }}
             ghcr.io/${{ steps.prep.outputs.tag }}
