@@ -307,7 +307,8 @@ jobs:
           retry_wait_seconds: 30
           command: |
             [[ "${STATUS}" == "success" ]] && COLOR="3066993"
-            json=$(jq -nc --arg     discord_mentions "${DISCORD_MENTIONS}" \
+            [[ "${STATUS}" != "success" ]] && MENTIONS="${DISCORD_MENTIONS}"
+            json=$(jq -nc --arg     discord_mentions "${MENTIONS}" \
                           --arg     title            "${IMAGE_TAG_BRANCH}" \
                           --arg     url              "https://github.com/${REPOSITORY}/actions/runs/${RUN_ID}" \
                           --argjson color            "${COLOR:-15158332}" \
