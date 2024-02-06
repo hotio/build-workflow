@@ -309,7 +309,7 @@ jobs:
             if [[ "${STATUS}" == "success" ]]; then
               COLOR="3066993"
             else
-              MENTION_JSON='"content": "${DISCORD_MENTIONS}",'
+              MENTION_JSON='"content": "'${DISCORD_MENTIONS}'",'
             fi
             json=$(jq -nc --argjson mention_json    "${MENTION_JSON}" \
                           --arg     title           "${IMAGE_TAG_BRANCH}" \
