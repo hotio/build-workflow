@@ -37,7 +37,7 @@ jobs:
                               --arg     url         "https://github.com/${REPOSITORY_OWNER}/${repo}/commit/${GIT_SHA}" \
                               --arg     description "Version changes detected:\n`${old_version}` => `${new_version}`" \
                               --argjson color       "4886754" \
-                              --arg     timestamp   "$(date -u --iso-8601=seconds)" \
+                              --arg     timestamp   "$(date -u +'%FT%T.%3NZ')" \
                               '{"embeds":[{"title":$title,"url":$url,"description":$description,"color":$color,"footer":{"text":"Powered by GitHub Actions"},"timestamp":$timestamp}]}')
                 jq <<< "${json}"
                 curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
