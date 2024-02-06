@@ -26,12 +26,14 @@ jobs:
               cd "${repo}" || exit 1
               git config user.name "github-actions[bot]"
               git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              old_version=$(jq -r '.version' < VERSION.json)
               [[ -f update-versions.sh ]] && bash ./update-versions.sh
+              new_version=$(jq -r '.version' < VERSION.json)
               git add .
-              if git commit -m "Version update: $(jq -r '.version' < VERSION.json)"; then
+              if git commit -m "Version update: ${old_version} => ${new_version}"; then
                 git push
                 GIT_SHA=$(git log -n 1 --pretty=format:"%H")
-                json='{"embeds": [{"title": "Version update: $(jq -r '.version' < VERSION.json)","description": "Version changes detected for **['${REPOSITORY_OWNER}'/'${repo}':'${branch}'](https://github.com/'${REPOSITORY_OWNER}'/'${repo}'/commit/'${GIT_SHA}')**.","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
+                json='{"embeds": [{"title": "['${REPOSITORY_OWNER}'/'${repo}':'${branch}'](https://github.com/'${REPOSITORY_OWNER}'/'${repo}'/commit/'${GIT_SHA}')","description": "Version changes detected:\n`'"${old_version}"'` => `'"${new_version}"'`","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
                 curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
               fi
               cd .. || exit 1
