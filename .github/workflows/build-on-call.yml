@@ -142,10 +142,8 @@ jobs:
           test_url=$(jq -r '.test_url' < ./VERSION.json)
           test_amd64=$(jq -r '.test_arm64' < ./VERSION.json)
           test_arm64=$(jq -r '.test_arm64' < ./VERSION.json)
-          if [[ ${test_url} != null ]]; then
-            [[ ${PLATFORM} == linux/amd64 ]]                                && do_test=true
-            [[ ${PLATFORM} == linux/arm64 ]] && [[ ${test_arm64} == true ]] && do_test=true
-          fi
+          [[ ${PLATFORM} == linux/amd64 ]] && [[ ${test_amd64} == true ]] && do_test=true
+          [[ ${PLATFORM} == linux/arm64 ]] && [[ ${test_arm64} == true ]] && do_test=true
           if [[ ${do_test} == true ]]; then
             docker run --platform="${PLATFORM}" --network host -d --name service "${IMAGE}"
             currenttime=$(date +%s); maxtime=$((currenttime+120)); while (! curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null) && [[ "$currenttime" -lt "$maxtime" ]]; do sleep 1; currenttime=$(date +%s); done
