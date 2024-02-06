@@ -11,14 +11,6 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Git Config
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
       - name: Update versions
         env:
           GITHUB_OWNER: ${{ github.repository_owner }}
@@ -31,16 +23,18 @@ jobs:
             while IFS= read -r branch; do
               echo "Updating ${repo}/${branch}..."
               git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
-              cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
+              cd "${repo}" || exit 1
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
               [[ -f update-versions.sh ]] && bash ./update-versions.sh
               git add .
-              if git commit -m "Version update"; then
+              if git commit -m "Version update: $(jq -r '.version' < VERSION.json)"; then
                 git push
                 GIT_SHA=$(git log -n 1 --pretty=format:"%H")
-                json='{"embeds": [{"title": "Version update","description": "Version changes detected for **['${GITHUB_OWNER}'/'${repo}':'${branch}'](https://github.com/'${GITHUB_OWNER}'/'${repo}'/commit/'${GIT_SHA}')**.","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
+                json='{"embeds": [{"title": "Version update: $(jq -r '.version' < VERSION.json)","description": "Version changes detected for **['${GITHUB_OWNER}'/'${repo}':'${branch}'](https://github.com/'${GITHUB_OWNER}'/'${repo}'/commit/'${GIT_SHA}')**.","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
                 curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
               fi
-              cd "${GITHUB_WORKSPACE}" || exit 1
-              rm -rf "${GITHUB_WORKSPACE:?}/${repo}"
+              cd .. || exit 1
+              rm -rf "${repo}"
             done < <(curl -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -fsSL "https://api.github.com/repos/${GITHUB_OWNER}/${repo}/branches" | jq -r --arg BRANCH "${BRANCH}" '.[] | select(.name!="master") | select(.name|test("\($BRANCH)")) | .name')
           done < <(curl -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -fsSL "https://api.github.com/users/${GITHUB_OWNER}/repos?per_page=1000" | jq -r --arg REPO "${REPO}" '.[] | select(.topics[]=="docker-image") | select(.name|test("\($REPO)")) | .name')
