@@ -31,7 +31,7 @@ jobs:
                               --arg     url         "https://github.com/${REPOSITORY_OWNER}/${repo}/commit/${GIT_SHA}" \
                               --arg     description "Upstream changes detected!" \
                               --argjson color       "4886754" \
-                              --arg     timestamp   "$(date -u +'%FT%T.%3NZ')" \
+                              --arg     timestamp   "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" \
                               '{"embeds": [
                                 {
                                   "title": $title,
