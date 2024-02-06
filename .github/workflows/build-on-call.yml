@@ -89,7 +89,7 @@ jobs:
           echo "is-latest=$(jq -r '.latest // false' < VERSION.json)" >> $GITHUB_OUTPUT
           echo "description=$(jq -r '.description // empty' < VERSION.json)" >> $GITHUB_OUTPUT
           echo "hide=$(jq -r '.hide // false' < VERSION.json)" >> $GITHUB_OUTPUT
-          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" >> $GITHUB_OUTPUT
           echo "revision=${SHA}" >> $GITHUB_OUTPUT
           echo "source=${SERVER_URL}/${REPOSITORY}/tree/${BRANCH}" >> $GITHUB_OUTPUT
           echo "vendor=${REPOSITORY_OWNER}" >> $GITHUB_OUTPUT
@@ -293,6 +293,7 @@ jobs:
           SHA:              ${{ github.sha }}
           IMAGE_TAG_BRANCH: ${{ needs.build.outputs.image-tag-branch }}
           DISCORD_MENTIONS: ${{ vars.DISCORD_MENTIONS }}
+          CREATED:          ${{ needs.build.outputs.created }}
         with:
           max_attempts: 3
           timeout_minutes: 5
@@ -307,7 +308,7 @@ jobs:
                           --arg     commit_message   "\`\`\`${COMMIT_MESSAGE:----}\`\`\`" \
                           --arg     commit_sha_link  "[${SHA:0:7}](https://github.com/${REPOSITORY}/commit/${SHA})" \
                           --arg     version          "${VERSION:----}" \
-                          --arg     timestamp        "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" \
+                          --arg     timestamp        "${CREATED}" \
                           '{"content": $discord_mentions,
                             "embeds": [
                               {
