@@ -9,34 +9,28 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Git Config
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
       - name: Update digests
         env:
-          GITHUB_OWNER: ${{ github.repository_owner }}
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           while IFS= read -r repo; do
             while IFS= read -r branch; do
-              echo "Updating ${repo}/${branch}..."
-              git clone -b "${branch}" "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${repo}.git"
-              cd "${GITHUB_WORKSPACE}/${repo}" || exit 1
+              echo "Updating ${REPOSITORY_OWNER}/${repo}:${branch}..."
+              git clone -b "${branch}" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_OWNER}/${repo}.git"
+              cd "${repo}" || exit 1
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
               [[ -f update-digests.sh ]] && bash ./update-digests.sh
               git add .
-              if git commit -m "Digest update"; then
+              if git commit -m "Upstream image update"; then
                 git push
                 GIT_SHA=$(git log -n 1 --pretty=format:"%H")
-                json='{"embeds": [{"title": "Digest update","description": "Digest changes detected for **['${GITHUB_OWNER}'/'${repo}':'${branch}'](https://github.com/'${GITHUB_OWNER}'/'${repo}'/commit/'${GIT_SHA}')**.","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
+                json='{"embeds": [{"title": "Upstream image update","description": "Upstream changes detected for **['${REPOSITORY_OWNER}'/'${repo}':'${branch}'](https://github.com/'${REPOSITORY_OWNER}'/'${repo}'/commit/'${GIT_SHA}')**.","color": 4886754,"footer": {"text": "Powered by GitHub Actions"},"timestamp": "'$(date -u --iso-8601=seconds)'"}]}'
                 curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
               fi
-              cd "${GITHUB_WORKSPACE}" || exit 1
-              rm -rf "${GITHUB_WORKSPACE:?}/${repo}"
-            done < <(curl -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -fsSL "https://api.github.com/repos/${GITHUB_OWNER}/${repo}/branches" | jq -r '.[] | select(.name!="master") | .name')
-          done < <(curl -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -fsSL "https://api.github.com/users/${GITHUB_OWNER}/repos?per_page=1000" | jq -r '.[] | select(.topics[]=="docker-image") | .name')
+              cd .. || exit 1
+              rm -rf "${repo}"
+            done < <(curl -u "${REPOSITORY_OWNER}:${PERSONAL_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${repo}/branches" | jq -r '.[] | select(.name!="master") | .name')
+          done < <(curl -u "${REPOSITORY_OWNER}:${PERSONAL_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -r '.[] | select(.topics[]=="docker-image") | .name')

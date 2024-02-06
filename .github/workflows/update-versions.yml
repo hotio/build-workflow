@@ -13,12 +13,11 @@ jobs:
     steps:
       - name: Update versions
         env:
-          GITHUB_OWNER: ${{ github.repository_owner }}
           PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
           REPOSITORY: ${{ github.event.client_payload.repo }}
           BRANCH: ${{ github.event.client_payload.branch }}
-          REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           while IFS= read -r repo; do
             while IFS= read -r branch; do
