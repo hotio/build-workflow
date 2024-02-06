@@ -306,43 +306,40 @@ jobs:
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
-            if [[ "${STATUS}" == "success" ]]; then
-              COLOR="3066993"
-            else
-              MENTION_JSON='"content": "'${DISCORD_MENTIONS}'",'
-            fi
-            json=$(jq -nc --argjson mention_json    "${MENTION_JSON}" \
-                          --arg     title           "${IMAGE_TAG_BRANCH}" \
-                          --arg     url             "https://github.com/${REPOSITORY}/actions/runs/${RUN_ID}" \
-                          --argjson color           "${COLOR:-15158332}" \
-                          --arg     commit_message  "\`\`\`${COMMIT_MESSAGE:----}\`\`\`" \
-                          --arg     commit_sha_link "[${SHA:0:7}](https://github.com/${REPOSITORY}/commit/${SHA})" \
-                          --arg     version         "${VERSION:----}" \
-                          --arg     timestamp       "$(date -u +'%FT%T.%3NZ')" \
-                          '{$mention_json "embeds": [
-                            {
-                              "title": $title,
-                              "url": $url,
-                              "color": $color,
-                              "fields": [
-                                {
-                                  "name": "Commit Message",
-                                  "value": $commit_message
-                                },
-                                {
-                                  "name": "Commit SHA",
-                                  "value": $commit_sha_link,
-                                  "inline": true
-                                },
-                                {
-                                  "name": "Version",
-                                  "value": $version,
-                                  "inline": true
-                                }
-                              ],
-                              "footer": {"text": "Powered by GitHub Actions"},
-                              "timestamp": $timestamp
-                            }
+            [[ "${STATUS}" == "success" ]] && COLOR="3066993"
+            json=$(jq -nc --arg     discord_mentions "${DISCORD_MENTIONS}" \
+                          --arg     title            "${IMAGE_TAG_BRANCH}" \
+                          --arg     url              "https://github.com/${REPOSITORY}/actions/runs/${RUN_ID}" \
+                          --argjson color            "${COLOR:-15158332}" \
+                          --arg     commit_message   "\`\`\`${COMMIT_MESSAGE:----}\`\`\`" \
+                          --arg     commit_sha_link  "[${SHA:0:7}](https://github.com/${REPOSITORY}/commit/${SHA})" \
+                          --arg     version          "${VERSION:----}" \
+                          --arg     timestamp        "$(date -u +'%FT%T.%3NZ')" \
+                          '{"content": $discord_mentions,
+                            "embeds": [
+                              {
+                                "title": $title,
+                                "url": $url,
+                                "color": $color,
+                                "fields": [
+                                  {
+                                    "name": "Commit Message",
+                                    "value": $commit_message
+                                  },
+                                  {
+                                    "name": "Commit SHA",
+                                    "value": $commit_sha_link,
+                                    "inline": true
+                                  },
+                                  {
+                                    "name": "Version",
+                                    "value": $version,
+                                    "inline": true
+                                  }
+                                ],
+                                "footer": {"text": "Powered by GitHub Actions"},
+                                "timestamp": $timestamp
+                              }
                           ]}')
             jq <<< "${json}"
             curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "payload_json=${json}" "${DISCORD_WEBHOOK}"
