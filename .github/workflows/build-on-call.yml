@@ -315,7 +315,7 @@ jobs:
                           --arg     title           "${IMAGE_TAG_BRANCH}" \
                           --arg     url             "https://github.com/${REPOSITORY}/actions/runs/${RUN_ID}" \
                           --argjson color           "${COLOR:-15158332}" \
-                          --arg     commit_message  "```${COMMIT_MESSAGE:----}```" \
+                          --arg     commit_message  "\`\`\`${COMMIT_MESSAGE:----}\`\`\`" \
                           --arg     commit_sha_link "[${SHA:0:7}](https://github.com/${REPOSITORY}/commit/${SHA})" \
                           --arg     version         "${VERSION:----}" \
                           --arg     timestamp       "$(date -u +'%FT%T.%3NZ')" \
@@ -340,7 +340,7 @@ jobs:
                                   "inline": true
                                 }
                               ],
-                              "footer":{"text": "Powered by GitHub Actions"},
+                              "footer": {"text": "Powered by GitHub Actions"},
                               "timestamp": $timestamp
                             }
                           ]}')

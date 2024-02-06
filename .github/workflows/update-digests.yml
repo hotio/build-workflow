@@ -32,7 +32,16 @@ jobs:
                               --arg     description "Upstream changes detected!" \
                               --argjson color       "4886754" \
                               --arg     timestamp   "$(date -u +'%FT%T.%3NZ')" \
-                              '{"embeds":[{"title":$title,"url":$url,"description":$description,"color":$color,"footer":{"text":"Powered by GitHub Actions"},"timestamp":$timestamp}]}')
+                              '{"embeds": [
+                                {
+                                  "title": $title,
+                                  "url": $url,
+                                  "description": $description,
+                                  "color": $color,
+                                  "footer": {"text": "Powered by GitHub Actions"},
+                                  "timestamp": $timestamp
+                                }
+                              ]}')
                 jq <<< "${json}"
                 curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
               fi
