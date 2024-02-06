@@ -132,13 +132,7 @@ jobs:
           PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
           PLATFORM:        ${{ steps.prep.outputs.platform }}
         run: |
-          upstream_tag=$(jq -r '.upstream_tag' < ./VERSION.json)
-          upstream_image=$(jq -r '.upstream_image' < ./VERSION.json)
-          if [[ ${upstream_tag} == alpine* || ${upstream_image} == alpine* ]]; then
-            docker run --platform="${PLATFORM}" --rm --entrypoint="" "${IMAGE}" apk -vv info | sort > "${PACKAGE_VERSION}-packages.log" 2>&1
-          else
-            docker run --platform="${PLATFORM}" --rm --entrypoint="" "${IMAGE}" apt list --installed > "${PACKAGE_VERSION}-packages.log" 2>&1
-          fi
+          docker run --platform="${PLATFORM}" --rm --entrypoint="" -v ${GITHUB_WORKSPACE}:/logs -e LOG="/logs/${PACKAGE_VERSION}-packages.log" "${IMAGE}" bash -c "if grep -q alpine < /etc/os-release; then apk -vv info | sort > ${LOG} 2>&1; else apt list --installed > ${LOG} 2>&1; fi"
           test_url=$(jq -r '.test_url' < ./VERSION.json)
           test_amd64=$(jq -r '.test_arm64' < ./VERSION.json)
           test_arm64=$(jq -r '.test_arm64' < ./VERSION.json)
