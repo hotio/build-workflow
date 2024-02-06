@@ -26,7 +26,6 @@ jobs:
     needs: [shellcheck]
     outputs:
       version:                  ${{ steps.prep.outputs.version }}
-      created:                  ${{ steps.prep.outputs.created }}
       is-latest:                ${{ steps.prep.outputs.is-latest }}
       description:              ${{ steps.prep.outputs.description }}
       hide:                     ${{ steps.prep.outputs.hide }}
@@ -248,7 +247,6 @@ jobs:
         uses: nick-fields/retry@v3
         env:
           REPOSITORY:               ${{ github.repository }}
-          CREATED:                  ${{ needs.build.outputs.created }}
           IS_LATEST:                ${{ needs.build.outputs.is-latest }}
           DESCRIPTION:              ${{ needs.build.outputs.description }}
           HIDE:                     ${{ needs.build.outputs.hide }}
@@ -268,7 +266,7 @@ jobs:
             [[ ! -f tags.json ]] && echo "{}" > tags.json
             if [[ ${HIDE} != true ]]; then
               tags_json=$(cat tags.json)
-              jq '.'"${IMAGE_TAG_BRANCH}"'.tags[0] = "'"${IMAGE_TAG_BRANCH}"'" | .'"${IMAGE_TAG_BRANCH}"'.tags[1] = "'"${IMAGE_TAG_BRANCH_VERSION}"'" | .'"${IMAGE_TAG_BRANCH}"'.tags[2] = "'"${IMAGE_TAG_BRANCH_SHA}"'" | .'"${IMAGE_TAG_BRANCH}"'.last_updated = "'"${CREATED}"'" | .'"${IMAGE_TAG_BRANCH}"'.latest = '"${IS_LATEST}"' | .'"${IMAGE_TAG_BRANCH}"'.description = "'"${DESCRIPTION}"'"' <<< "${tags_json}" | jq --sort-keys > tags.json
+              jq '.'"${IMAGE_TAG_BRANCH}"'.tags[0] = "'"${IMAGE_TAG_BRANCH}"'" | .'"${IMAGE_TAG_BRANCH}"'.tags[1] = "'"${IMAGE_TAG_BRANCH_VERSION}"'" | .'"${IMAGE_TAG_BRANCH}"'.tags[2] = "'"${IMAGE_TAG_BRANCH_SHA}"'" | .'"${IMAGE_TAG_BRANCH}"'.last_updated = "'"$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')"'" | .'"${IMAGE_TAG_BRANCH}"'.latest = '"${IS_LATEST}"' | .'"${IMAGE_TAG_BRANCH}"'.description = "'"${DESCRIPTION}"'"' <<< "${tags_json}" | jq --sort-keys > tags.json
             fi
             jq < tags.json
             git add .
@@ -293,7 +291,6 @@ jobs:
           SHA:              ${{ github.sha }}
           IMAGE_TAG_BRANCH: ${{ needs.build.outputs.image-tag-branch }}
           DISCORD_MENTIONS: ${{ vars.DISCORD_MENTIONS }}
-          CREATED:          ${{ needs.build.outputs.created }}
         with:
           max_attempts: 3
           timeout_minutes: 5
@@ -308,7 +305,7 @@ jobs:
                           --arg     commit_message   "\`\`\`${COMMIT_MESSAGE:----}\`\`\`" \
                           --arg     commit_sha_link  "[${SHA:0:7}](https://github.com/${REPOSITORY}/commit/${SHA})" \
                           --arg     version          "${VERSION:----}" \
-                          --arg     timestamp        "${CREATED}" \
+                          --arg     timestamp        "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
                           '{"content": $discord_mentions,
                             "embeds": [
                               {
