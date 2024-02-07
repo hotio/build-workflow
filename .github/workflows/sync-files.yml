@@ -21,6 +21,7 @@ jobs:
               git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
               ############################
               echo "Do Stuff!"
+              curl -fsSL https://raw.githubusercontent.com/hotio/base/jammyvpn/update-digests.sh > update-digests.sh
               ############################
               git add --all
               if git commit -m "FileSync Updates [skip ci]"; then
