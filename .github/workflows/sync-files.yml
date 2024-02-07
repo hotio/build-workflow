@@ -39,5 +39,5 @@ jobs:
               ###########################################
               cd .. || exit 1
               rm -rf "${REPOSITORY}"
-            done < <(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re --arg branch_filter "${BRANCH_FILTER}" '.[] | select(.name=="master")) | .name')
+            done < <(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re --arg branch_filter "${BRANCH_FILTER}" '.[] | select(.name=="master") | .name')
           done < <(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re --arg repository_filter "${REPOSITORY_FILTER}" '.[] | select(.topics[]=="docker-image") | select(.name|test("\($repository_filter)")) | .name')
