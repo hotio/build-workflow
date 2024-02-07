@@ -9,11 +9,6 @@ jobs:
   do-work:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PERSONAL_TOKEN }}
-
       - name: Git Config
         run: |
           git config --global user.name "github-actions[bot]"
@@ -25,11 +20,9 @@ jobs:
           PERSONAL_TOKEN:   ${{ secrets.PERSONAL_TOKEN }}
           DISCORD_WEBHOOK:  ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          while IFS= read -r REPOSITORY; do
-            CLONE_URL=$(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}" | jq -re '.clone_url')
+          while read REPOSITORY; do
             while IFS= read -r BRANCH; do
-              echo "Checkout ${CLONE_URL}..."
-              git clone -b "${BRANCH}" "${CLONE_URL}"
+              git clone -b "${BRANCH}" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_OWNER}/${REPOSITORY}.git"
               cd "${REPOSITORY}" || exit 1
               ###########################################
               [[ -f update-digests.sh ]] && bash ./update-digests.sh || true
