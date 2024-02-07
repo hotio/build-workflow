@@ -4,30 +4,39 @@ on:
   workflow_dispatch:
 
 jobs:
-  sync:
+  do-work:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync files
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PERSONAL_TOKEN }}
+
+      - name: Git Config
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Do Work
         env:
           REPOSITORY_OWNER: ${{ github.repository_owner }}
-          PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
         run: |
-          while IFS= read -r repo; do
-            while IFS= read -r branch; do
-              echo "Updating ${REPOSITORY_OWNER}/${repo}:${branch}..."
-              git clone -b "${branch}" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_OWNER}/${repo}.git"
-              cd "${repo}" || exit 1
-              git config user.name "github-actions[bot]"
-              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          while IFS= read -r REPOSITORY; do
+            CLONE_URL=$(curl --header "Authorization: Bearer ${GITHUB_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}" | jq -re '.clone_url')
+            while IFS= read -r BRANCH; do
+              echo "Checkout ${CLONE_URL}..."
+              git clone -b "${BRANCH}" "${CLONE_URL}"
+              cd "${REPOSITORY}" || exit 1
               ############################
+              COMMIT_MESSAGE="FileSync Updates [skip ci]"
               echo "Do Stuff!"
               #curl -fsSL https://raw.githubusercontent.com/hotio/base/jammyvpn/update-digests.sh > update-digests.sh
               ############################
               git add --all
-              if git commit -m "FileSync Updates [skip ci]"; then
+              if git commit -m "${COMMIT_MESSAGE}"; then
                 git push
               fi
               cd .. || exit 1
-              rm -rf "${repo}"
-            done < <(curl -u "${REPOSITORY_OWNER}:${PERSONAL_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${repo}/branches" | jq -r '.[] | .name')
-          done < <(curl -u "${REPOSITORY_OWNER}:${PERSONAL_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -r '.[] | select(.topics[]=="docker-image") | .name')
+              rm -rf "${REPOSITORY}"
+            done < <(curl --header "Authorization: Bearer ${GITHUB_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re '.[] | .name')
+          done < <(curl --header "Authorization: Bearer ${GITHUB_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re '.[] | select(.topics[]=="docker-image") | .name')
