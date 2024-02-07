@@ -8,24 +8,34 @@ on:
     types: [update-versions-webhook]
 
 jobs:
-  update:
+  do-work:
     runs-on: ubuntu-latest
     steps:
-      - name: Update versions
-        env:
-          PERSONAL_TOKEN:   ${{ secrets.PERSONAL_TOKEN }}
-          DISCORD_WEBHOOK:  ${{ secrets.DISCORD_WEBHOOK }}
-          REPOSITORY_OWNER: ${{ github.repository_owner }}
-          REPOSITORY:       ${{ github.event.client_payload.repo }}
-          BRANCH:           ${{ github.event.client_payload.branch }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PERSONAL_TOKEN }}
+
+      - name: Git Config
         run: |
-          while IFS= read -r repo; do
-            while IFS= read -r branch; do
-              echo "Updating ${REPOSITORY_OWNER}/${repo}:${branch}..."
-              git clone -b "${branch}" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_OWNER}/${repo}.git"
-              cd "${repo}" || exit 1
-              git config user.name "github-actions[bot]"
-              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Do Work
+        env:
+          REPOSITORY_OWNER:  ${{ github.repository_owner }}
+          PERSONAL_TOKEN:    ${{ secrets.PERSONAL_TOKEN }}
+          DISCORD_WEBHOOK:   ${{ secrets.DISCORD_WEBHOOK }}
+          REPOSITORY_FILTER: ${{ github.event.client_payload.repo }}
+          BRANCH_FILTER:     ${{ github.event.client_payload.branch }}
+        run: |
+          while IFS= read -r REPOSITORY; do
+            CLONE_URL=$(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}" | jq -re '.clone_url')
+            while IFS= read -r BRANCH; do
+              echo "Checkout ${CLONE_URL}..."
+              git clone -b "${BRANCH}" "${CLONE_URL}"
+              cd "${REPOSITORY}" || exit 1
+              ###########################################
               old_version="$(jq -r '.version' < VERSION.json)"
               [[ -f update-versions.sh ]] && bash ./update-versions.sh || true
               new_version="$(jq -r '.version' < VERSION.json)"
@@ -51,7 +61,8 @@ jobs:
                 jq <<< "${json}"
                 curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
               fi
+              ###########################################
               cd .. || exit 1
-              rm -rf "${repo}"
-            done < <(curl -u "${REPOSITORY_OWNER}:${PERSONAL_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${repo}/branches" | jq -r --arg BRANCH "${BRANCH}" '.[] | select(.name!="master") | select(.name|test("\($BRANCH)")) | .name')
-          done < <(curl -u "${REPOSITORY_OWNER}:${PERSONAL_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -r --arg REPOSITORY "${REPOSITORY}" '.[] | select(.topics[]=="docker-image") | select(.name|test("\($REPOSITORY)")) | .name')
+              rm -rf "${REPOSITORY}"
+            done < <(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re --arg branch_filter "${BRANCH_FILTER}" '.[] | select(.name!="master") | select(.name|test("\($branch_filter)")) | .name')
+          done < <(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re --arg repository_filter "${REPOSITORY_FILTER}" '.[] | select(.topics[]=="docker-image") | select(.name|test("\($repository_filter)")) | .name')

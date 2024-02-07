@@ -28,16 +28,16 @@ jobs:
               echo "Checkout ${CLONE_URL}..."
               git clone -b "${BRANCH}" "${CLONE_URL}"
               cd "${REPOSITORY}" || exit 1
-              ############################
-              COMMIT_MESSAGE="FileSync Updates [skip ci]"
+              ###########################################
               echo "Do Stuff!"
               #curl -fsSL https://raw.githubusercontent.com/hotio/base/jammyvpn/update-digests.sh > update-digests.sh
-              ############################
+              rm update-digests.sh
               git add --all
-              if git commit -m "${COMMIT_MESSAGE}"; then
+              if git commit -m "FileSync Updates [skip ci]"; then
                 git push
               fi
+              ###########################################
               cd .. || exit 1
               rm -rf "${REPOSITORY}"
-            done < <(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re '.[] | .name')
-          done < <(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re '.[] | select(.topics[]=="docker-image") | .name')
+            done < <(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re --arg branch_filter "${BRANCH_FILTER}" '.[] | select(.name=="master") | select(.name|test("\($branch_filter)")) | .name')
+          done < <(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re --arg repository_filter "${REPOSITORY_FILTER}" '.[] | select(.topics[]=="docker-image") | select(.name|test("\($repository_filter)")) | .name')
