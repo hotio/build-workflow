@@ -22,7 +22,7 @@ jobs:
               cd "${repo}" || exit 1
               git config user.name "github-actions[bot]"
               git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-              [[ -f update-digests.sh ]] && bash ./update-digests.sh
+              [[ -f update-digests.sh ]] && bash ./update-digests.sh || true
               git add .
               if git commit -m "Upstream image update"; then
                 git push
