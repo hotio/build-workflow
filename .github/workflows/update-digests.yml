@@ -30,8 +30,8 @@ jobs:
               if git commit -m "Upstream image update"; then
                 git push
                 GIT_SHA=$(git log -n 1 --pretty=format:"%H")
-                json=$(jq -nc --arg     title       "${REPOSITORY_OWNER}/${repo}:${branch}" \
-                              --arg     url         "https://github.com/${REPOSITORY_OWNER}/${repo}/commit/${GIT_SHA}" \
+                json=$(jq -nc --arg     title       "${REPOSITORY_OWNER}/${REPOSITORY}:${BRANCH}" \
+                              --arg     url         "https://github.com/${REPOSITORY_OWNER}/${REPOSITORY}/commit/${GIT_SHA}" \
                               --arg     description "Upstream changes detected!" \
                               --argjson color       "4886754" \
                               --arg     timestamp   "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" \
