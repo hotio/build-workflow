@@ -246,6 +246,7 @@ jobs:
       - name: Update "tags.json" File
         uses: nick-fields/retry@v3
         env:
+          RUN_ID:                   ${{ github.run_id }}
           REPOSITORY:               ${{ github.repository }}
           IS_LATEST:                ${{ needs.build.outputs.is-latest }}
           DESCRIPTION:              ${{ needs.build.outputs.description }}
@@ -265,10 +266,18 @@ jobs:
             IMAGE_TAG_BRANCH_SHA=${IMAGE_TAG_BRANCH_SHA/$REPOSITORY:/}
             [[ ! -f tags.json ]] && echo "{}" > tags.json
             if [[ ${HIDE} != true ]]; then
-              tags_json=$(cat tags.json)
-              jq '.'"${IMAGE_TAG_BRANCH}"'.tags[0] = "'"${IMAGE_TAG_BRANCH}"'" | .'"${IMAGE_TAG_BRANCH}"'.tags[1] = "'"${IMAGE_TAG_BRANCH_VERSION}"'" | .'"${IMAGE_TAG_BRANCH}"'.tags[2] = "'"${IMAGE_TAG_BRANCH_SHA}"'" | .'"${IMAGE_TAG_BRANCH}"'.last_updated = "'"$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')"'" | .'"${IMAGE_TAG_BRANCH}"'.latest = '"${IS_LATEST}"' | .'"${IMAGE_TAG_BRANCH}"'.description = "'"${DESCRIPTION}"'"' <<< "${tags_json}" | jq --sort-keys > tags.json
+              json=$(cat tags.json)
+              jq --sort-keys \
+                  --arg tag                            "${IMAGE_TAG_BRANCH}" \
+                  --arg image_tag_branch_value         "${IMAGE_TAG_BRANCH}" \
+                  --arg image_tag_branch_version_value "${IMAGE_TAG_BRANCH_VERSION}" \
+                  --arg image_tag_branch_sha_value     "${IMAGE_TAG_BRANCH_SHA}" \
+                  --arg last_updated                   "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
+                  --arg last_updated_url               "https://github.com/${REPOSITORY}/actions/runs/${RUN_ID}" \
+                  --argjson latest                     "${IS_LATEST}" \
+                  --arg description                    "${DESCRIPTION}" \
+                  '.[$tag].tags[0] = $image_tag_branch_value | .[$tag].tags[1] = $image_tag_branch_version_value | .[$tag].tags[2] = $image_tag_branch_sha_value | .[$tag].last_updated = $last_updated | .[$tag].latest = $latest | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url' <<< "${json}" | tee tags.json
             fi
-            jq < tags.json
             git add .
             if git commit -m "Update tags.json [skip ci]"; then
               git push
