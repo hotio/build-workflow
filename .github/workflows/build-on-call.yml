@@ -28,6 +28,7 @@ jobs:
       version:                  ${{ steps.prep.outputs.version }}
       is-latest:                ${{ steps.prep.outputs.is-latest }}
       description:              ${{ steps.prep.outputs.description }}
+      hide:                     ${{ steps.prep.outputs.hide }}
       image-tag-full-amd64:     ${{ steps.prep.outputs.image-tag-full-amd64 }}
       image-tag-full-arm64:     ${{ steps.prep.outputs.image-tag-full-arm64 }}
       image-tag-latest:         ${{ steps.prep.outputs.image-tag-latest }}
@@ -86,6 +87,7 @@ jobs:
           [[ -n ${PR_BRANCH} ]] && PR_BRANCH=-${PR_BRANCH}
           echo "is-latest=$(jq -r '.latest // false' < VERSION.json)" >> $GITHUB_OUTPUT
           echo "description=$(jq -r '.description // empty' < VERSION.json)" >> $GITHUB_OUTPUT
+          echo "hide=$(jq -r '.hide // false' < VERSION.json)" >> $GITHUB_OUTPUT
           echo "created=$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" >> $GITHUB_OUTPUT
           echo "revision=${SHA}" >> $GITHUB_OUTPUT
           echo "source=${SERVER_URL}/${REPOSITORY}/tree/${BRANCH}" >> $GITHUB_OUTPUT
@@ -248,6 +250,7 @@ jobs:
           REPOSITORY:               ${{ github.repository }}
           IS_LATEST:                ${{ needs.build.outputs.is-latest }}
           DESCRIPTION:              ${{ needs.build.outputs.description }}
+          HIDE:                     ${{ needs.build.outputs.hide }}
           IMAGE_TAG_BRANCH:         ${{ needs.build.outputs.image-tag-branch }}
           IMAGE_TAG_BRANCH_VERSION: ${{ needs.build.outputs.image-tag-branch-version }}
           IMAGE_TAG_BRANCH_SHA:     ${{ needs.build.outputs.image-tag-branch-sha }}
@@ -272,7 +275,8 @@ jobs:
                 --arg last_updated_url               "https://github.com/${REPOSITORY}/actions/runs/${RUN_ID}" \
                 --argjson latest                     "${IS_LATEST}" \
                 --arg description                    "${DESCRIPTION}" \
-                '.[$tag].tags[0] = $image_tag_branch_value | .[$tag].tags[1] = $image_tag_branch_version_value | .[$tag].tags[2] = $image_tag_branch_sha_value | .[$tag].last_updated = $last_updated | .[$tag].latest = $latest | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url' <<< "${json}" | tee tags.json
+                --arg hide                           "${HIDE}" \
+                '.[$tag].tags[0] = $image_tag_branch_value | .[$tag].tags[1] = $image_tag_branch_version_value | .[$tag].tags[2] = $image_tag_branch_sha_value | .[$tag].last_updated = $last_updated | .[$tag].latest = $latest | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url | .[$tag].hide = $hide' <<< "${json}" | tee tags.json
             git add .
             if git commit -m "Update tags.json [skip ci]"; then
               git push
