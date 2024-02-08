@@ -248,6 +248,7 @@ jobs:
         env:
           RUN_ID:                   ${{ github.run_id }}
           REPOSITORY:               ${{ github.repository }}
+          SERVER_URL:               ${{ github.server_url }}
           IS_LATEST:                ${{ needs.build.outputs.is-latest }}
           DESCRIPTION:              ${{ needs.build.outputs.description }}
           HIDE:                     ${{ needs.build.outputs.hide }}
@@ -272,7 +273,7 @@ jobs:
                 --arg image_tag_branch_version_value "${IMAGE_TAG_BRANCH_VERSION}" \
                 --arg image_tag_branch_sha_value     "${IMAGE_TAG_BRANCH_SHA}" \
                 --arg last_updated                   "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
-                --arg last_updated_url               "https://github.com/${REPOSITORY}/actions/runs/${RUN_ID}" \
+                --arg last_updated_url               "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
                 --argjson latest                     "${IS_LATEST}" \
                 --arg description                    "${DESCRIPTION}" \
                 --argjson hide                       "${HIDE}" \
@@ -300,6 +301,7 @@ jobs:
           RUN_ID:           ${{ github.run_id }}
           REPOSITORY:       ${{ github.repository }}
           SHA:              ${{ github.sha }}
+          SERVER_URL:       ${{ github.server_url }}
           IMAGE_TAG_BRANCH: ${{ needs.build.outputs.image-tag-branch }}
           DISCORD_MENTIONS: ${{ vars.DISCORD_MENTIONS }}
         with:
@@ -311,10 +313,10 @@ jobs:
             [[ "${STATUS}" != "success" ]] && MENTIONS="${DISCORD_MENTIONS}"
             json=$(jq -nc --arg     discord_mentions "${MENTIONS}" \
                           --arg     title            "${IMAGE_TAG_BRANCH}" \
-                          --arg     url              "https://github.com/${REPOSITORY}/actions/runs/${RUN_ID}" \
+                          --arg     url              "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
                           --argjson color            "${COLOR:-15158332}" \
                           --arg     commit_message   "\`\`\`${COMMIT_MESSAGE:----}\`\`\`" \
-                          --arg     commit_sha_link  "[${SHA:0:7}](https://github.com/${REPOSITORY}/commit/${SHA})" \
+                          --arg     commit_sha_link  "[${SHA:0:7}](${SERVER_URL}/${REPOSITORY}/commit/${SHA})" \
                           --arg     version          "${VERSION:----}" \
                           --arg     timestamp        "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
                           '{"content": $discord_mentions,
