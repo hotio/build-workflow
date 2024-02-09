@@ -32,7 +32,7 @@ jobs:
               cd "${REPOSITORY}" || exit 1
               ###########################################
               old_version="$(jq -r '.version' < VERSION.json)"
-              [[ -f update-versions.sh ]] && ${GH_ACTOR} ${GH_TOKEN} bash ./update-versions.sh || continue
+              [[ -f update-versions.sh ]] && GITHUB_ACTOR=${GH_ACTOR} GITHUB_TOKEN=${GH_TOKEN} bash ./update-versions.sh || continue
               new_version="$(jq -r '.version' < VERSION.json)"
               git add .
               if git commit -m "Version update: ${old_version} => ${new_version}"; then
