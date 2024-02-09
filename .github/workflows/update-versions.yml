@@ -32,6 +32,7 @@ jobs:
               old_version="$(jq -r '.version' < VERSION.json)"
               [[ -f update-versions.sh ]] && bash ./update-versions.sh || continue
               new_version="$(jq -r '.version' < VERSION.json)"
+              [[ ${new_version} == "" ]] && continue
               git add .
               if git commit -m "Version update: ${old_version} => ${new_version}"; then
                 git push
