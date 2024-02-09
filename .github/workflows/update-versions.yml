@@ -33,9 +33,13 @@ jobs:
               ###########################################
               old_version="$(jq -r '.version' < VERSION.json)"
               [[ -f update-versions.sh ]] && GITHUB_ACTOR=${GH_ACTOR} GITHUB_TOKEN=${GH_TOKEN} bash ./update-versions.sh || continue
-              new_version="$(jq -r '.version' < VERSION.json)"
+              if new_version="$(jq -re '.version' < VERSION.json)"; then
+                commit_message="Version update: ${old_version} => ${new_version}"
+              else
+                commit_message="Version update"
+              fi
               git add .
-              if git commit -m "Version update: ${old_version} => ${new_version}"; then
+              if git commit -m "${commit_message}"; then
                 git push
                 GIT_SHA=$(git log -n 1 --pretty=format:"%H")
                 json=$(jq -nc --arg     title       "${REPOSITORY_OWNER}/${REPOSITORY}:${BRANCH}" \
