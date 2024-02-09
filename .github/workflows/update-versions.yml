@@ -35,8 +35,10 @@ jobs:
               [[ -f update-versions.sh ]] && GITHUB_ACTOR=${GH_ACTOR} GITHUB_TOKEN=${GH_TOKEN} bash ./update-versions.sh || continue
               if new_version="$(jq -re '.version' < VERSION.json)"; then
                 commit_message="Version update: ${old_version} => ${new_version}"
+                discord_message="Version changes detected: \`${old_version}\` => \`${new_version}\`"
               else
                 commit_message="Version update"
+                discord_message="Version changes detected."
               fi
               git add .
               if git commit -m "${commit_message}"; then
@@ -44,7 +46,7 @@ jobs:
                 GIT_SHA=$(git log -n 1 --pretty=format:"%H")
                 json=$(jq -nc --arg     title       "${REPOSITORY_OWNER}/${REPOSITORY}:${BRANCH}" \
                               --arg     url         "https://github.com/${REPOSITORY_OWNER}/${REPOSITORY}/commit/${GIT_SHA}" \
-                              --arg     description "Version changes detected: \`${old_version}\` => \`${new_version}\`" \
+                              --arg     description "${discord_message}" \
                               --argjson color       "4886754" \
                               --arg     timestamp   "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" \
                               '{"embeds": [
