@@ -30,7 +30,7 @@ jobs:
               cd "${REPOSITORY}" || exit 1
               ###########################################
               old_version="$(jq -r '.version' < VERSION.json)"
-              [[ -f update-versions.sh ]] && bash ./update-versions.sh || true
+              [[ -f update-versions.sh ]] && bash ./update-versions.sh || continue
               new_version="$(jq -r '.version' < VERSION.json)"
               git add .
               if git commit -m "Version update: ${old_version} => ${new_version}"; then
