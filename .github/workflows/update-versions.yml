@@ -19,6 +19,8 @@ jobs:
       - name: Do Work
         env:
           REPOSITORY_OWNER:  ${{ github.repository_owner }}
+          GH_ACTOR:          ${{ github.actor }}
+          GH_TOKEN:          ${{ github.token }}
           PERSONAL_TOKEN:    ${{ secrets.PERSONAL_TOKEN }}
           DISCORD_WEBHOOK:   ${{ secrets.DISCORD_WEBHOOK }}
           REPOSITORY_FILTER: ${{ github.event.client_payload.repo }}
@@ -30,9 +32,8 @@ jobs:
               cd "${REPOSITORY}" || exit 1
               ###########################################
               old_version="$(jq -r '.version' < VERSION.json)"
-              [[ -f update-versions.sh ]] && bash ./update-versions.sh || continue
+              [[ -f update-versions.sh ]] && ${GH_ACTOR} ${GH_TOKEN} bash ./update-versions.sh || continue
               new_version="$(jq -r '.version' < VERSION.json)"
-              [[ ${new_version} == "" ]] && continue
               git add .
               if git commit -m "Version update: ${old_version} => ${new_version}"; then
                 git push
@@ -58,5 +59,5 @@ jobs:
               ###########################################
               cd .. || exit 1
               rm -rf "${REPOSITORY}"
-            done < <(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re --arg branch_filter "${BRANCH_FILTER}" '.[] | select(.name!="master") | select(.name|test("\($branch_filter)")) | .name')
-          done < <(curl --header "Authorization: Bearer ${PERSONAL_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re --arg repository_filter "${REPOSITORY_FILTER}" '.[] | select(.topics[]=="docker-image") | select(.name|test("\($repository_filter)")) | .name')
+            done < <(curl -u "${GH_ACTOR}:${GH_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re --arg branch_filter "${BRANCH_FILTER}" '.[] | select(.name!="master") | select(.name|test("\($branch_filter)")) | .name')
+          done < <(curl -u "${GH_ACTOR}:${GH_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re --arg repository_filter "${REPOSITORY_FILTER}" '.[] | select(.topics[]=="docker-image") | select(.name|test("\($repository_filter)")) | .name')
