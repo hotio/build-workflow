@@ -142,7 +142,7 @@ jobs:
           if [[ ${do_test} == true ]]; then
             exitcode=0
             docker run --platform="${PLATFORM}" --network host -d --name service "${IMAGE}"
-            curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 -b /dev/shm/cookie "${test_url}" --output /dev/null || exitcode=$?
+            curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 -b /dev/shm/cookie "${test_url}FAIL" --output /dev/null || exitcode=$?
             docker logs service > "${PACKAGE_VERSION}-test.log" 2>&1
             exit ${exitcode}
           fi
