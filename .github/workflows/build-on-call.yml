@@ -126,6 +126,7 @@ jobs:
 
       - name: List Packages and Smoke Test
         if: (steps.arch-exists.outputs.result == 'ok')
+        id: smoketest
         env:
           IMAGE:           ${{ steps.prep.outputs.image-tag-full }}
           PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
@@ -144,6 +145,15 @@ jobs:
             curl -fsSL -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null
             exit $?
           fi
+
+      - name: Take Screenshot
+        if: (steps.arch-exists.outputs.result == 'ok') && (steps.smoketest.outcome == 'success')
+        env:
+          PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
+        run: |
+          docker run --rm --network host -d --rm elestio/ws-screenshot.slim:latest node ./index.js -r . -p 1025 --oc 1
+          test_url=$(jq -r '.test_url' < ./VERSION.json)
+          curl -fsSL "http://localhost:1025/api/screenshot?resX=1920&resY=1080&outFormat=png&isFullPage=false&url=${test_url}" > "${PACKAGE_VERSION}-screenshot.png"
 
       - name: Push Image
         if: (steps.arch-exists.outputs.result == 'ok')
@@ -175,7 +185,7 @@ jobs:
           if-no-files-found: warn
           name: ${{ steps.prep.outputs.package-version }}-results-${{ matrix.architecture }}
           path: |
-            ${{ steps.prep.outputs.package-version }}-*.log
+            ${{ steps.prep.outputs.package-version }}-*.*
 
   publish:
     runs-on: ubuntu-22.04
