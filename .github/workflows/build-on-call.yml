@@ -104,6 +104,8 @@ jobs:
           echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION}" >> $GITHUB_OUTPUT
           echo "image-tag-branch-sha=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
           [[ $(jq -r '.latest // empty' < VERSION.json) == true ]] && echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
+          [[ ${ARCHITECTURE} == linux-amd64 ]] && [[ $(jq -r '.test_amd64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
+          [[ ${ARCHITECTURE} == linux-arm64 ]] && [[ $(jq -r '.test_arm64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
             jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
             echo "BUILD_ARCHITECTURE=${ARCHITECTURE}" >> $GITHUB_OUTPUT
@@ -125,31 +127,33 @@ jobs:
           build-args: |
             ${{ steps.prep.outputs.build-args }}
 
-      - name: List Packages and Smoke Test
+      - name: List Packages
         if: (steps.arch-exists.outputs.result == 'ok')
-        id: smoketest
         env:
           IMAGE:           ${{ steps.prep.outputs.image-tag-full }}
           PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
           PLATFORM:        ${{ steps.prep.outputs.platform }}
         run: |
           docker run --platform="${PLATFORM}" --rm --entrypoint="" -v ${GITHUB_WORKSPACE}:/logs -e LOG="/logs/${PACKAGE_VERSION}-packages.log" "${IMAGE}" bash -c 'if grep -q alpine < /etc/os-release; then apk -vv info | sort > ${LOG} 2>&1; else apt list --installed > ${LOG} 2>&1; fi'
+          
+      - name: Smoke Test
+        if: (steps.arch-exists.outputs.result == 'ok') && (steps.prep.outputs.do_smoketest == 'ok')
+        id: smoketest
+        env:
+          IMAGE:           ${{ steps.prep.outputs.image-tag-full }}
+          PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
+          PLATFORM:        ${{ steps.prep.outputs.platform }}
+        run: |
           test_url=$(jq -r '.test_url' < VERSION.json)
-          test_amd64=$(jq -r '.test_arm64' < VERSION.json)
-          test_arm64=$(jq -r '.test_arm64' < VERSION.json)
-          [[ ${PLATFORM} == linux/amd64 ]] && [[ ${test_amd64} == true ]] && do_test=true
-          [[ ${PLATFORM} == linux/arm64 ]] && [[ ${test_arm64} == true ]] && do_test=true
-          if [[ ${do_test} == true ]]; then
-            exitcode=0
-            docker run --platform="${PLATFORM}" --network host -d --name service "${IMAGE}"
-            curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 -b /dev/shm/cookie "${test_url}" --output /dev/null || exitcode=$?
-            docker logs service > "${PACKAGE_VERSION}-test.log" 2>&1
-            [[ ${exitcode} == 0 ]] && echo "result=ok" >> $GITHUB_OUTPUT || echo "result=nok" >> $GITHUB_OUTPUT
-            exit ${exitcode}
-          fi
+          exitcode=0
+          docker run --platform="${PLATFORM}" --network host -d --name service "${IMAGE}"
+          curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 -b /dev/shm/cookie "${test_url}" --output /dev/null || exitcode=$?
+          docker logs service > "${PACKAGE_VERSION}-test.log" 2>&1
+          [[ ${exitcode} == 0 ]] && echo "result=ok" >> $GITHUB_OUTPUT || echo "result=nok" >> $GITHUB_OUTPUT
+          exit ${exitcode}
 
       - name: Take Screenshot
-        if: (steps.arch-exists.outputs.result == 'ok') && (steps.smoketest.outputs.result == 'ok')
+        if: (steps.arch-exists.outputs.result == 'ok') && (steps.prep.outputs.do_smoketest == 'ok')
         env:
           PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
         run: |
