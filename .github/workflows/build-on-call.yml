@@ -134,9 +134,9 @@ jobs:
           PLATFORM:        ${{ steps.prep.outputs.platform }}
         run: |
           docker run --platform="${PLATFORM}" --rm --entrypoint="" -v ${GITHUB_WORKSPACE}:/logs -e LOG="/logs/${PACKAGE_VERSION}-packages.log" "${IMAGE}" bash -c 'if grep -q alpine < /etc/os-release; then apk -vv info | sort > ${LOG} 2>&1; else apt list --installed > ${LOG} 2>&1; fi'
-          test_url=$(jq -r '.test_url' < ./VERSION.json)
-          test_amd64=$(jq -r '.test_arm64' < ./VERSION.json)
-          test_arm64=$(jq -r '.test_arm64' < ./VERSION.json)
+          test_url=$(jq -r '.test_url' < VERSION.json)
+          test_amd64=$(jq -r '.test_arm64' < VERSION.json)
+          test_arm64=$(jq -r '.test_arm64' < VERSION.json)
           [[ ${PLATFORM} == linux/amd64 ]] && [[ ${test_amd64} == true ]] && do_test=true
           [[ ${PLATFORM} == linux/arm64 ]] && [[ ${test_arm64} == true ]] && do_test=true
           if [[ ${do_test} == true ]]; then
@@ -153,7 +153,7 @@ jobs:
           PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
         run: |
           docker run --rm --network host -d --rm elestio/ws-screenshot.slim:latest node ./index.js -r . -p 1025 --oc 1
-          test_url=$(jq -r '.test_url' < ./VERSION.json)
+          test_url=$(jq -r '.test_url' < VERSION.json)
           curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 "http://localhost:1025" --output /dev/null
           curl -fsSL "http://localhost:1025/api/screenshot?resX=1920&resY=1080&outFormat=png&isFullPage=false&waitTime=10000&dismissModals=true&url=${test_url}" --output "${PACKAGE_VERSION}-screenshot.png"
 
