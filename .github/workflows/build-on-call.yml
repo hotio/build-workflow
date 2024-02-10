@@ -157,6 +157,7 @@ jobs:
         env:
           PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
         run: |
+          docker pull -q elestio/ws-screenshot.slim:latest
           docker run --rm --network host -d --rm elestio/ws-screenshot.slim:latest node ./index.js -r . -p 1025 --oc 1
           test_url=$(jq -r '.test_url' < VERSION.json)
           curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 "http://localhost:1025" --output /dev/null
