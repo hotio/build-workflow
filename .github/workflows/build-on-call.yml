@@ -338,6 +338,7 @@ jobs:
                           --arg     commit_message   "\`\`\`${COMMIT_MESSAGE:----}\`\`\`" \
                           --arg     commit_sha_link  "[${SHA:0:7}](${SERVER_URL}/${REPOSITORY}/commit/${SHA})" \
                           --arg     version          "${VERSION:----}" \
+                          --arg     package_version  "${PACKAGE_VERSION}" \
                           --arg     timestamp        "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
                           '{"content": $discord_mentions,
                             "embeds": [
@@ -362,6 +363,7 @@ jobs:
                                   }
                                 ],
                                 "footer": {"text": "Powered by GitHub Actions"},
+                                "image": {"url": "attachment://$package_version-screenshot.png"},
                                 "timestamp": $timestamp
                               }
                           ]}')
