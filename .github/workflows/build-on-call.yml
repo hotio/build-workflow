@@ -35,6 +35,7 @@ jobs:
       image-tag-branch:         ${{ steps.prep.outputs.image-tag-branch }}
       image-tag-branch-version: ${{ steps.prep.outputs.image-tag-branch-version }}
       image-tag-branch-sha:     ${{ steps.prep.outputs.image-tag-branch-sha }}
+      package-version:          ${{ steps.prep.outputs.package-version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -302,6 +303,12 @@ jobs:
     if: always()
     needs: [build, publish]
     steps:
+      - name: Download Artifact
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.package-version }}-results-linux-amd64
+
       - name: Send Discord Notification
         uses: nick-fields/retry@v3
         env:
@@ -315,6 +322,7 @@ jobs:
           SERVER_URL:       ${{ github.server_url }}
           IMAGE_TAG_BRANCH: ${{ needs.build.outputs.image-tag-branch }}
           DISCORD_MENTIONS: ${{ vars.DISCORD_MENTIONS }}
+          PACKAGE_VERSION:  ${{ needs.build.outputs.package-version }}
         with:
           max_attempts: 3
           timeout_minutes: 5
@@ -322,6 +330,7 @@ jobs:
           command: |
             [[ "${STATUS}" == "success" ]] && COLOR="3066993"
             [[ "${STATUS}" != "success" ]] && MENTIONS="${DISCORD_MENTIONS}"
+            [[ ! -f "${PACKAGE_VERSION}-screenshot.png" ]] && curl -fsSL "https://hotio.dev/img/pullio-background.png" > "${PACKAGE_VERSION}-screenshot.png"
             json=$(jq -nc --arg     discord_mentions "${MENTIONS}" \
                           --arg     title            "${IMAGE_TAG_BRANCH}" \
                           --arg     url              "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
@@ -357,4 +366,4 @@ jobs:
                               }
                           ]}')
             jq <<< "${json}"
-            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "payload_json=${json}" "${DISCORD_WEBHOOK}"
+            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "file=@${PACKAGE_VERSION}-screenshot.png" -F "payload_json=${json}" "${DISCORD_WEBHOOK}"
