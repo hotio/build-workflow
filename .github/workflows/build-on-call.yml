@@ -141,7 +141,7 @@ jobs:
           [[ ${PLATFORM} == linux/arm64 ]] && [[ ${test_arm64} == true ]] && do_test=true
           if [[ ${do_test} == true ]]; then
             docker run --platform="${PLATFORM}" --network host -d --name service "${IMAGE}"
-            curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 -b /dev/shm/cookie "${test_url}"
+            curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 -b /dev/shm/cookie "${test_url}" > /dev/null
             docker logs service > "${PACKAGE_VERSION}-test.log" 2>&1
           fi
 
@@ -152,7 +152,7 @@ jobs:
         run: |
           docker run --rm --network host -d --rm elestio/ws-screenshot.slim:latest node ./index.js -r . -p 1025 --oc 1
           test_url=$(jq -r '.test_url' < ./VERSION.json)
-          curl -fsSL --retry-all-errors --retry 10 --retry-max-time 60 -m 10 "http://localhost:1025/api/screenshot?resX=1920&resY=1080&outFormat=png&isFullPage=false&waitTime=10000&dismissModals=true&url=${test_url}" > "${PACKAGE_VERSION}-screenshot.png"
+          curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 "http://localhost:1025/api/screenshot?resX=1920&resY=1080&outFormat=png&isFullPage=false&waitTime=10000&dismissModals=true&url=${test_url}" > "${PACKAGE_VERSION}-screenshot.png"
 
       - name: Push Image
         if: (steps.arch-exists.outputs.result == 'ok')
