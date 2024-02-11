@@ -28,6 +28,7 @@ jobs:
               cd "${REPOSITORY}" || exit 1
               ###########################################
               [[ -f update-digests.sh ]] && bash ./update-digests.sh || continue
+              [[ -f update-self-version.sh ]] && bash ./update-self-version.sh || continue
               git add .
               if git commit -m "Upstream image update"; then
                 git push

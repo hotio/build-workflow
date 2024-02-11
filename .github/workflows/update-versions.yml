@@ -33,6 +33,7 @@ jobs:
               ###########################################
               old_version="$(jq -r '.version' < VERSION.json)"
               [[ -f update-versions.sh ]] && GITHUB_ACTOR=${GH_ACTOR} GITHUB_TOKEN=${GH_TOKEN} bash ./update-versions.sh || continue
+              [[ -f update-self-version.sh ]] && bash ./update-self-version.sh || continue
               if new_version="$(jq -re '.version' < VERSION.json)"; then
                 commit_message="Version update: ${old_version} => ${new_version}"
                 discord_message="Version changes detected: \`${old_version}\` => \`${new_version}\`"
