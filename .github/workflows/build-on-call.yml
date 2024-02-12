@@ -375,4 +375,4 @@ jobs:
                               }
                           ]}')
             jq <<< "${json}"
-            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "file=@${PACKAGE_VERSION}-screenshot.png" -F "payload_json=${json}" "${DISCORD_WEBHOOK}"
+            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "file=@${PACKAGE_VERSION}-screenshot.png" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
