@@ -336,7 +336,8 @@ jobs:
           command: |
             [[ "${STATUS}" == "success" ]] && COLOR="3066993"
             [[ "${STATUS}" != "success" ]] && MENTIONS="${DISCORD_MENTIONS}"
-            [[ ! -f "${PACKAGE_VERSION}-screenshot.png" ]] && curl -fsSL --retry 3 "https://hotio.dev/img/pullio-background.png" --output "${PACKAGE_VERSION}-screenshot.png"
+            [[ ! -f "${PACKAGE_VERSION}-screenshot.png" ]] && [[ "${STATUS}" == "success" ]] && curl -fsSL --retry 3 "https://hotio.dev/img/pullio-background-sunglasses.png" --output "${PACKAGE_VERSION}-screenshot.png"
+            [[ ! -f "${PACKAGE_VERSION}-screenshot.png" ]] && [[ "${STATUS}" != "success" ]] && curl -fsSL --retry 3 "https://hotio.dev/img/pullio-background-crying.png" --output "${PACKAGE_VERSION}-screenshot.png"
             json=$(jq -nc --arg     discord_mentions "${MENTIONS}" \
                           --arg     title            "${IMAGE_TAG_BRANCH}" \
                           --arg     url              "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
