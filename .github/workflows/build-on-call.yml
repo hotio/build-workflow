@@ -301,7 +301,7 @@ jobs:
               git push
             fi
           new_command_on_retry: |
-            git pull
+            git pull --rebase
             git push
 
   notify:
