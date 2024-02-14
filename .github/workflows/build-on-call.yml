@@ -219,6 +219,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Manifests
+        uses: nick-fields/retry@v3
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
           IMAGE_TAG_FULL_AMD64:     ${{ needs.build.outputs.image-tag-full-amd64 }}
@@ -228,16 +229,24 @@ jobs:
           IMAGE_TAG_BRANCH_VERSION: ${{ needs.build.outputs.image-tag-branch-version }}
           IMAGE_TAG_BRANCH_SHA:     ${{ needs.build.outputs.image-tag-branch-sha }}
           REGISTRY:                 ${{ matrix.registry }}
-        run: |
-          echo "${REGISTRY}/${IMAGE_TAG_BRANCH}         ${REGISTRY}/${IMAGE_TAG_FULL_AMD64} ${REGISTRY}/${IMAGE_TAG_FULL_ARM64}" >> manifest.list
-          echo "${REGISTRY}/${IMAGE_TAG_BRANCH_VERSION} ${REGISTRY}/${IMAGE_TAG_FULL_AMD64} ${REGISTRY}/${IMAGE_TAG_FULL_ARM64}" >> manifest.list
-          echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SHA}     ${REGISTRY}/${IMAGE_TAG_FULL_AMD64} ${REGISTRY}/${IMAGE_TAG_FULL_ARM64}" >> manifest.list
-          if [[ -n "${IMAGE_TAG_LATEST}" ]]; then
-          echo "${REGISTRY}/${IMAGE_TAG_LATEST}         ${REGISTRY}/${IMAGE_TAG_FULL_AMD64} ${REGISTRY}/${IMAGE_TAG_FULL_ARM64}" >> manifest.list
-          fi
-          while read manifest; do
-            docker manifest create $(awk '{print $1}' <<< ${manifest}) $(awk '{print $2}' <<< ${manifest}) $(awk '{print $3}' <<< ${manifest})
-          done < manifest.list
+        with:
+          max_attempts: 3
+          timeout_minutes: 5
+          retry_wait_seconds: 30
+          command: |
+            echo "${REGISTRY}/${IMAGE_TAG_BRANCH}         ${REGISTRY}/${IMAGE_TAG_FULL_AMD64} ${REGISTRY}/${IMAGE_TAG_FULL_ARM64}" > manifest.list
+            echo "${REGISTRY}/${IMAGE_TAG_BRANCH_VERSION} ${REGISTRY}/${IMAGE_TAG_FULL_AMD64} ${REGISTRY}/${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+            echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SHA}     ${REGISTRY}/${IMAGE_TAG_FULL_AMD64} ${REGISTRY}/${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+            if [[ -n "${IMAGE_TAG_LATEST}" ]]; then
+            echo "${REGISTRY}/${IMAGE_TAG_LATEST}         ${REGISTRY}/${IMAGE_TAG_FULL_AMD64} ${REGISTRY}/${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+            fi
+            while read manifest; do
+              docker manifest create $(awk '{print $1}' <<< ${manifest}) $(awk '{print $2}' <<< ${manifest}) $(awk '{print $3}' <<< ${manifest})
+            done < manifest.list
+          on_retry_command:
+            while read manifest; do
+              docker manifest rm $(awk '{print $1}' <<< ${manifest}) || true
+            done < manifest.list
 
       - name: Push Manifests
         uses: nick-fields/retry@v3
