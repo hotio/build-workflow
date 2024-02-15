@@ -80,6 +80,7 @@ jobs:
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           SHA:              ${{ github.sha }}
           SERVER_URL:       ${{ github.server_url }}
+          GH_API_TOKEN:     ${{ secrets.GH_API_TOKEN }}
         run: |
           VERSION=$(jq -r '.version // empty' < VERSION.json)
           VERSION=${VERSION//\~/-}
