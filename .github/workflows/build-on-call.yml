@@ -137,7 +137,7 @@ jobs:
           PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
           PLATFORM:        ${{ steps.prep.outputs.platform }}
         run: |
-          docker run --platform="${PLATFORM}" --rm --entrypoint="" -v ${GITHUB_WORKSPACE}:/logs -e LOG="/logs/${PACKAGE_VERSION}-packages.log" "${IMAGE}" bash -c 'if grep -q alpine < /etc/os-release; then apk -vv info | sort > ${LOG} 2>&1; else apt list --installed > ${LOG} 2>&1; fi'
+          docker run --platform="${PLATFORM}" --rm --entrypoint="" -v ${GITHUB_WORKSPACE}:/logs -e LOG="/logs/${PACKAGE_VERSION}-packages.log" "${IMAGE}" sh -c 'if grep -q alpine < /etc/os-release; then apk -vv info | sort > ${LOG} 2>&1; else apt list --installed > ${LOG} 2>&1; fi'
           
       - name: Smoke Test
         if: (steps.arch-exists.outputs.result == 'ok') && (steps.prep.outputs.do_smoketest == 'ok')
