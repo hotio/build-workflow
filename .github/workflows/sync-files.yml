@@ -25,7 +25,7 @@ jobs:
               cd "${REPOSITORY}" || exit 1
               ###########################################
               echo "Do Stuff!"
-              #curl -fsSL https://raw.githubusercontent.com/hotio/whisparr/v3/update-digests.sh > update-digests.sh
+              curl -fsSL https://raw.githubusercontent.com/hotio/base/jammyvpn/build.sh > build.sh
               #rm update-digests.sh
               git add --all
               if git commit -m "FileSync Updates [skip ci]"; then
