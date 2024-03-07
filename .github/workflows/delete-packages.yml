@@ -9,7 +9,8 @@ jobs:
     steps:
       - uses: smartsquaregmbh/delete-old-packages@v0.8.0
         with:
-          token: ${{ secrets.GH_API_TOKEN }}
+          token: ${{ secrets.GH_PACKAGES_TOKEN }}
+          user: mrhotio
           organization: hotio
           type: container
           keep: 0
