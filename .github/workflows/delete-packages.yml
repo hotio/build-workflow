@@ -1,0 +1,16 @@
+name: delete-packages
+
+on:
+  workflow_dispatch:
+
+jobs:
+  do-work:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: smartsquaregmbh/delete-old-packages@v0.8.0
+        with:
+          token: ${{ secrets.GH_API_TOKEN }}
+          organization: hotio
+          type: docker
+          names: |
+            requestrr
