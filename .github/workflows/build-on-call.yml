@@ -67,7 +67,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GH_PACKAGES_TOKEN }}
 
       - name: Create Outputs for Next Steps
         if: (steps.arch-exists.outputs.result == 'ok')
@@ -219,7 +219,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GH_PACKAGES_TOKEN }}
 
       - name: Create Manifests
         uses: nick-fields/retry@v3
