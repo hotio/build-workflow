@@ -92,7 +92,7 @@ jobs:
           echo "hide=$(jq -r '.hide // false' < VERSION.json)" >> $GITHUB_OUTPUT
           echo "created=$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" >> $GITHUB_OUTPUT
           echo "revision=${SHA}" >> $GITHUB_OUTPUT
-          echo "source=${SERVER_URL}/${REPOSITORY}" >> $GITHUB_OUTPUT
+          echo "source=${SERVER_URL}/${REPOSITORY}/tree/${BRANCH}" >> $GITHUB_OUTPUT
           echo "vendor=${REPOSITORY_OWNER}" >> $GITHUB_OUTPUT
           echo "url=https://hotio.dev/containers/${REPOSITORY/${REPOSITORY_OWNER}\//}" >> $GITHUB_OUTPUT
           echo "platform=${ARCHITECTURE//-/\/}" >> $GITHUB_OUTPUT
