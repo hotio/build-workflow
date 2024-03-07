@@ -11,7 +11,6 @@ jobs:
         with:
           token: ${{ secrets.GH_PACKAGES_TOKEN }}
           user: mrhotio
-          organization: hotio
           type: container
           keep: 0
           names: |
