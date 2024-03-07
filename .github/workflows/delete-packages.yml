@@ -11,6 +11,6 @@ jobs:
         with:
           token: ${{ secrets.GH_API_TOKEN }}
           organization: hotio
-          type: docker
+          type: container
           names: |
             requestrr
