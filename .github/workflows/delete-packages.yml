@@ -13,5 +13,4 @@ jobs:
           organization: hotio
           type: container
           names: |
-            mono
-            apprise
+            requestrr
