@@ -12,5 +12,6 @@ jobs:
           token: ${{ secrets.GH_API_TOKEN }}
           organization: hotio
           type: container
+          keep: 0
           names: |
             requestrr
