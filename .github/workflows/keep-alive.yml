@@ -8,9 +8,11 @@ on:
 jobs:
   heartbeat:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Keep workflow alive
-        uses: gautamkrishnar/keepalive-workflow@v1
+        uses: gautamkrishnar/keepalive-workflow@v2
