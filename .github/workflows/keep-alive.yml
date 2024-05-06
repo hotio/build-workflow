@@ -16,3 +16,5 @@ jobs:
 
       - name: Keep workflow alive
         uses: gautamkrishnar/keepalive-workflow@v2
+        with:
+          use_api: false
