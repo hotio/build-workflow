@@ -118,7 +118,7 @@ jobs:
 
       - name: Build Image
         if: (steps.arch-exists.outputs.result == 'ok')
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           provenance: false
           load: true
@@ -168,7 +168,7 @@ jobs:
 
       - name: Push Image
         if: (steps.arch-exists.outputs.result == 'ok')
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           provenance: false
           push: true
