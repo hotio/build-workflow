@@ -7,7 +7,7 @@ jobs:
   do-work:
     runs-on: ubuntu-latest
     steps:
-      - uses: smartsquaregmbh/delete-old-packages@v0.8.0
+      - uses: smartsquaregmbh/delete-old-packages@v0.8.1
         with:
           token: ${{ secrets.GH_PACKAGES_TOKEN }}
           organization: hotio
