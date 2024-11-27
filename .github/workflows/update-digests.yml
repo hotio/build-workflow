@@ -55,3 +55,14 @@ jobs:
               rm -rf "${REPOSITORY}"
             done < <(curl -u "${GH_ACTOR}:${GH_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re --arg branch_filter "${BRANCH_FILTER}" '.[] | select(.name!="master") | select(.name|test("\($branch_filter)")) | .name')
           done < <(curl -u "${GH_ACTOR}:${GH_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re --arg repository_filter "${REPOSITORY_FILTER}" '.[] | select(.topics[]=="docker-image") | select(.name|test("\($repository_filter)")) | .name')
+
+  heartbeat:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Keep workflow alive
+        uses: gautamkrishnar/keepalive-workflow@v2
