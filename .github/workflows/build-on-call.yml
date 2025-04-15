@@ -154,17 +154,6 @@ jobs:
           [[ ${exitcode} == 0 ]] && echo "result=ok" >> $GITHUB_OUTPUT || echo "result=nok" >> $GITHUB_OUTPUT
           exit ${exitcode}
 
-      - name: Take Screenshot
-        if: (steps.arch-exists.outputs.result == 'ok') && (steps.prep.outputs.do_smoketest == 'ok')
-        env:
-          PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
-        run: |
-          docker pull -q elestio/ws-screenshot.slim:latest
-          docker run --rm --network host -d --rm elestio/ws-screenshot.slim:latest node ./index.js -r . -p 1025 --oc 1
-          test_url=$(jq -r '.test_url' < VERSION.json)
-          curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 "http://localhost:1025" --output /dev/null
-          curl -fsSL "http://localhost:1025/api/screenshot?resX=1920&resY=1080&outFormat=png&isFullPage=false&waitTime=10000&dismissModals=true&url=${test_url}" --output "${PACKAGE_VERSION}-screenshot.png"
-
       - name: Push Image
         if: (steps.arch-exists.outputs.result == 'ok')
         uses: docker/build-push-action@v6
@@ -327,12 +316,6 @@ jobs:
     if: always()
     needs: [build, publish]
     steps:
-      - name: Download Artifact
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ needs.build.outputs.package-version }}-results-linux-amd64
-
       - name: Send Discord Notification
         uses: nick-fields/retry@v3
         env:
@@ -354,8 +337,6 @@ jobs:
           command: |
             [[ "${STATUS}" == "success" ]] && COLOR="3066993"
             [[ "${STATUS}" != "success" ]] && MENTIONS="${DISCORD_MENTIONS}"
-            [[ ! -f "${PACKAGE_VERSION}-screenshot.png" ]] && [[ "${STATUS}" == "success" ]] && curl -fsSL --retry 3 "https://hotio.dev/img/pullio-background-sunglasses.png" --output "${PACKAGE_VERSION}-screenshot.png"
-            [[ ! -f "${PACKAGE_VERSION}-screenshot.png" ]] && [[ "${STATUS}" != "success" ]] && curl -fsSL --retry 3 "https://hotio.dev/img/pullio-background-crying.png" --output "${PACKAGE_VERSION}-screenshot.png"
             json=$(jq -nc --arg     discord_mentions "${MENTIONS}" \
                           --arg     title            "${IMAGE_TAG_BRANCH}" \
                           --arg     url              "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
@@ -363,7 +344,6 @@ jobs:
                           --arg     commit_message   "\`\`\`${COMMIT_MESSAGE:----}\`\`\`" \
                           --arg     commit_sha_link  "[${SHA:0:7}](${SERVER_URL}/${REPOSITORY}/commit/${SHA})" \
                           --arg     version          "${VERSION:----}" \
-                          --arg     attachment       "attachment://${PACKAGE_VERSION}-screenshot.png" \
                           --arg     timestamp        "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
                           '{"content": $discord_mentions,
                             "embeds": [
@@ -388,9 +368,8 @@ jobs:
                                   }
                                 ],
                                 "footer": {"text": "Powered by GitHub Actions"},
-                                "image": {"url": $attachment},
                                 "timestamp": $timestamp
                               }
                           ]}')
             jq <<< "${json}"
-            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "file=@${PACKAGE_VERSION}-screenshot.png" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
+            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
