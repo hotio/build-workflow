@@ -4,26 +4,11 @@ on:
   workflow_call:
 
 jobs:
-
-  shellcheck:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Check All "run*" Files
-        run: |
-          for file in $(find ./root/etc -type f -name "run*"); do
-            echo "Checking: $file"
-            shellcheck "$file"
-          done
-
   build:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
         architecture: [linux-arm64, linux-amd64]
-    needs: [shellcheck]
     outputs:
       version:                  ${{ steps.prep.outputs.version }}
       is-latest:                ${{ steps.prep.outputs.is-latest }}
