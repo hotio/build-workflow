@@ -67,6 +67,6 @@ jobs:
       - name: Keep workflow alive
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
-          REPOS: $GITHUB_REPOSITORY
+          REPOS:        ${{ github.repository }}
         run: |
           bash ./gh-workflow-immortality.sh
