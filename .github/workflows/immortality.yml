@@ -8,7 +8,6 @@ on:
 
 jobs:
   keepalive:
-    name: GitHub Workflow Immortality
     runs-on: ubuntu-latest
     permissions:
       actions: write
