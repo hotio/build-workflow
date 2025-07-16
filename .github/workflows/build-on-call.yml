@@ -148,7 +148,6 @@ jobs:
           platforms: ${{ steps.prep.outputs.platform }}
           file: ./${{ matrix.architecture }}.Dockerfile
           tags: |
-            docker.io/${{ steps.prep.outputs.image-tag-full }}
             ghcr.io/${{ steps.prep.outputs.image-tag-full }}
           labels: |
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
@@ -175,7 +174,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        registry: [docker.io, ghcr.io]
+        registry: [ghcr.io]
     needs: [build]
     steps:
       - name: Login to docker.io
