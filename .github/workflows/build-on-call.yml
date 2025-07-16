@@ -108,8 +108,8 @@ jobs:
           load: true
           platforms: ${{ steps.prep.outputs.platform }}
           file: ./${{ matrix.architecture }}.Dockerfile
-          cache-from: type=registry,ref=${{ steps.prep.outputs.image-tag-cache }}
-          cache-to: type=registry,ref=${{ steps.prep.outputs.image-tag-cache }},mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: ${{ steps.prep.outputs.image-tag-full }}
           build-args: |
             ${{ steps.prep.outputs.build-args }}
