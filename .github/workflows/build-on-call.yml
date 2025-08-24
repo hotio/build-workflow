@@ -106,44 +106,6 @@ jobs:
         with:
           provenance: false
           load: true
-          platforms: ${{ steps.prep.outputs.platform }}
-          file: ./${{ matrix.architecture }}.Dockerfile
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: ${{ steps.prep.outputs.image-tag-full }}
-          build-args: |
-            ${{ steps.prep.outputs.build-args }}
-
-      - name: List Packages
-        if: (steps.arch-exists.outputs.result == 'ok')
-        env:
-          IMAGE:           ${{ steps.prep.outputs.image-tag-full }}
-          PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
-          PLATFORM:        ${{ steps.prep.outputs.platform }}
-        run: |
-          docker run --platform="${PLATFORM}" --rm --entrypoint="" -v ${GITHUB_WORKSPACE}:/logs -e LOG="/logs/${PACKAGE_VERSION}-packages.log" "${IMAGE}" sh -c 'if grep -q alpine < /etc/os-release; then apk -vv info | sort > ${LOG} 2>&1; else apt list --installed > ${LOG} 2>&1; fi'
-          
-      - name: Smoke Test
-        if: (steps.arch-exists.outputs.result == 'ok') && (steps.prep.outputs.do_smoketest == 'ok')
-        id: smoketest
-        env:
-          IMAGE:           ${{ steps.prep.outputs.image-tag-full }}
-          PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
-          PLATFORM:        ${{ steps.prep.outputs.platform }}
-        run: |
-          test_url=$(jq -r '.test_url' < VERSION.json)
-          exitcode=0
-          docker run --platform="${PLATFORM}" --network host -d --name service "${IMAGE}"
-          curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 -b /dev/shm/cookie "${test_url}" --output /dev/null || exitcode=$?
-          docker logs service > "${PACKAGE_VERSION}-test.log" 2>&1
-          [[ ${exitcode} == 0 ]] && echo "result=ok" >> $GITHUB_OUTPUT || echo "result=nok" >> $GITHUB_OUTPUT
-          exit ${exitcode}
-
-      - name: Push Image
-        if: (steps.arch-exists.outputs.result == 'ok')
-        uses: docker/build-push-action@v6
-        with:
-          provenance: false
           push: true
           platforms: ${{ steps.prep.outputs.platform }}
           file: ./${{ matrix.architecture }}.Dockerfile
@@ -161,6 +123,31 @@ jobs:
             org.opencontainers.image.version=${{ steps.prep.outputs.version }}
           build-args: |
             ${{ steps.prep.outputs.build-args }}
+
+      - name: List Packages
+        if: (steps.arch-exists.outputs.result == 'ok')
+        env:
+          IMAGE:           ghcr.io/${{ steps.prep.outputs.image-tag-full }}
+          PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
+          PLATFORM:        ${{ steps.prep.outputs.platform }}
+        run: |
+          docker run --platform="${PLATFORM}" --rm --entrypoint="" -v ${GITHUB_WORKSPACE}:/logs -e LOG="/logs/${PACKAGE_VERSION}-packages.log" "${IMAGE}" sh -c 'if grep -q alpine < /etc/os-release; then apk -vv info | sort > ${LOG} 2>&1; else apt list --installed > ${LOG} 2>&1; fi'
+
+      - name: Smoke Test
+        if: (steps.arch-exists.outputs.result == 'ok') && (steps.prep.outputs.do_smoketest == 'ok')
+        id: smoketest
+        env:
+          IMAGE:           ghcr.io/${{ steps.prep.outputs.image-tag-full }}
+          PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
+          PLATFORM:        ${{ steps.prep.outputs.platform }}
+        run: |
+          test_url=$(jq -r '.test_url' < VERSION.json)
+          exitcode=0
+          docker run --platform="${PLATFORM}" --network host -d --name service "${IMAGE}"
+          curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 -b /dev/shm/cookie "${test_url}" --output /dev/null || exitcode=$?
+          docker logs service > "${PACKAGE_VERSION}-test.log" 2>&1
+          [[ ${exitcode} == 0 ]] && echo "result=ok" >> $GITHUB_OUTPUT || echo "result=nok" >> $GITHUB_OUTPUT
+          exit ${exitcode}
 
       - name: Upload Results
         continue-on-error: true
