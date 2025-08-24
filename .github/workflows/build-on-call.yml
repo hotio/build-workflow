@@ -147,6 +147,8 @@ jobs:
           push: true
           platforms: ${{ steps.prep.outputs.platform }}
           file: ./${{ matrix.architecture }}.Dockerfile
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ghcr.io/${{ steps.prep.outputs.image-tag-full }}
           labels: |
