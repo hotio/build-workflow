@@ -22,9 +22,9 @@ jobs:
           while read REPOSITORY; do
             while IFS= read -r BRANCH; do
               git clone -b "${BRANCH}" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_OWNER}/${REPOSITORY}.git"
+              cp ./README.md ${REPOSITORY}/README.md
               cd "${REPOSITORY}" || exit 1
               ###########################################
-              cp ../README.md ./README.md
               git add --all
               if git commit -m "FileSync Updates [skip ci]"; then
                 git push
