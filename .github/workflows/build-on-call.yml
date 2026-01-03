@@ -63,7 +63,7 @@ jobs:
           SHA:              ${{ github.sha }}
           SERVER_URL:       ${{ github.server_url }}
         run: |
-          wget -O ./semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/master/src/semver
+          wget -O ./semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/refs/tags/3.4.0/src/semver
           chmod +x ./semver
           VERSION=$(jq -r '.version // empty' < VERSION.json)
           VERSION=${VERSION//\~/-}
