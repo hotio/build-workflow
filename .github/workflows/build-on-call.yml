@@ -264,19 +264,16 @@ jobs:
           command: |
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            IMAGE_TAG_BRANCH=${IMAGE_TAG_BRANCH/$REPOSITORY:/}
-            IMAGE_TAG_BRANCH_VERSION=${IMAGE_TAG_BRANCH_VERSION/$REPOSITORY:/}
-            IMAGE_TAG_BRANCH_SHA=${IMAGE_TAG_BRANCH_SHA/$REPOSITORY:/}
             [[ ! -f tags.json ]] && echo "{}" > tags.json
             json=$(cat tags.json)
             jq --sort-keys \
-                --arg tag                                             "${IMAGE_TAG_BRANCH}" \
-                --arg image_tag_branch_value                          "${IMAGE_TAG_BRANCH}" \
-                --arg image_tag_branch_version_value                  "${IMAGE_TAG_BRANCH_VERSION}" \
-                --arg image_tag_branch_semver_major_value             "${IMAGE_TAG_BRANCH_SEMVER_MAJOR}" \
-                --arg image_tag_branch_semver_major_minor_value       "${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR}" \
-                --arg image_tag_branch_semver_major_minor_patch_value "${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH}" \
-                --arg image_tag_branch_sha_value                      "${IMAGE_TAG_BRANCH_SHA}" \
+                --arg tag                                             "${IMAGE_TAG_BRANCH/$REPOSITORY:/}" \
+                --arg image_tag_branch_value                          "${IMAGE_TAG_BRANCH/$REPOSITORY:/}" \
+                --arg image_tag_branch_version_value                  "${IMAGE_TAG_BRANCH_VERSION/$REPOSITORY:/}" \
+                --arg image_tag_branch_semver_major_value             "${IMAGE_TAG_BRANCH_SEMVER_MAJOR/$REPOSITORY:/}" \
+                --arg image_tag_branch_semver_major_minor_value       "${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR/$REPOSITORY:/}" \
+                --arg image_tag_branch_semver_major_minor_patch_value "${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH/$REPOSITORY:/}" \
+                --arg image_tag_branch_sha_value                      "${IMAGE_TAG_BRANCH_SHA/$REPOSITORY:/}" \
                 --arg last_updated                                    "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
                 --arg last_updated_url                                "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
                 --argjson latest                                      "${IS_LATEST}" \
