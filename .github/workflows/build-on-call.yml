@@ -88,9 +88,9 @@ jobs:
           echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION}" >> $GITHUB_OUTPUT
           echo "image-tag-branch-sha=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
           if [[ $(./semver validate "${VERSION}") == "valid" ]]; then
-            echo "image-tag-branch-semver-major=${REPOSITORY}:${BRANCH}${PR_BRANCH}-$(./semver get major ${VERSION})" >> $GITHUB_OUTPUT
-            echo "image-tag-branch-semver-major-minor=${REPOSITORY}:${BRANCH}${PR_BRANCH}-$(./semver get major ${VERSION}).$(./semver get minor ${VERSION})" >> $GITHUB_OUTPUT
-            echo "image-tag-branch-semver-major-minor-patch=${REPOSITORY}:${BRANCH}${PR_BRANCH}-$(./semver get major ${VERSION}).$(./semver get minor ${VERSION}).$(./semver get patch ${VERSION})" >> $GITHUB_OUTPUT
+            echo "image-tag-branch-semver-major=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION})" >> $GITHUB_OUTPUT
+            echo "image-tag-branch-semver-major-minor=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION})" >> $GITHUB_OUTPUT
+            echo "image-tag-branch-semver-major-minor-patch=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION}).$(./semver get patch ${VERSION})" >> $GITHUB_OUTPUT
           fi
           [[ $(jq -r '.latest // empty' < VERSION.json) == true ]] && echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
           [[ ${ARCHITECTURE} == linux-amd64 ]] && [[ $(jq -r '.test_amd64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
