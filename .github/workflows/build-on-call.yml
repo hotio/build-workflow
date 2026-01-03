@@ -10,17 +10,20 @@ jobs:
       matrix:
         architecture: [linux-arm64, linux-amd64]
     outputs:
-      version:                  ${{ steps.prep.outputs.version }}
-      is-latest:                ${{ steps.prep.outputs.is-latest }}
-      description:              ${{ steps.prep.outputs.description }}
-      hide:                     ${{ steps.prep.outputs.hide }}
-      image-tag-full-amd64:     ${{ steps.prep.outputs.image-tag-full-amd64 }}
-      image-tag-full-arm64:     ${{ steps.prep.outputs.image-tag-full-arm64 }}
-      image-tag-latest:         ${{ steps.prep.outputs.image-tag-latest }}
-      image-tag-branch:         ${{ steps.prep.outputs.image-tag-branch }}
-      image-tag-branch-version: ${{ steps.prep.outputs.image-tag-branch-version }}
-      image-tag-branch-sha:     ${{ steps.prep.outputs.image-tag-branch-sha }}
-      package-version:          ${{ steps.prep.outputs.package-version }}
+      version:                                   ${{ steps.prep.outputs.version }}
+      is-latest:                                 ${{ steps.prep.outputs.is-latest }}
+      description:                               ${{ steps.prep.outputs.description }}
+      hide:                                      ${{ steps.prep.outputs.hide }}
+      image-tag-full-amd64:                      ${{ steps.prep.outputs.image-tag-full-amd64 }}
+      image-tag-full-arm64:                      ${{ steps.prep.outputs.image-tag-full-arm64 }}
+      image-tag-latest:                          ${{ steps.prep.outputs.image-tag-latest }}
+      image-tag-branch:                          ${{ steps.prep.outputs.image-tag-branch }}
+      image-tag-branch-version:                  ${{ steps.prep.outputs.image-tag-branch-version }}
+      image-tag-branch-semver-major:             ${{ steps.prep.outputs.image-tag-branch-semver-major }}
+      image-tag-branch-semver-major-minor:       ${{ steps.prep.outputs.image-tag-branch-semver-major-minor }}
+      image-tag-branch-semver-major-minor-patch: ${{ steps.prep.outputs.image-tag-branch-semver-major-minor-patch }}
+      image-tag-branch-sha:                      ${{ steps.prep.outputs.image-tag-branch-sha }}
+      package-version:                           ${{ steps.prep.outputs.package-version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -60,6 +63,8 @@ jobs:
           SHA:              ${{ github.sha }}
           SERVER_URL:       ${{ github.server_url }}
         run: |
+          wget -O ./semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/master/src/semver
+          chmod +x ./semver
           VERSION=$(jq -r '.version // empty' < VERSION.json)
           VERSION=${VERSION//\~/-}
           [[ -z ${VERSION} ]] && VERSION=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y%m%d%H%M%S')
@@ -82,6 +87,11 @@ jobs:
           echo "image-tag-branch=${REPOSITORY}:${BRANCH}${PR_BRANCH}" >> $GITHUB_OUTPUT
           echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION}" >> $GITHUB_OUTPUT
           echo "image-tag-branch-sha=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
+          if [[ $(./semver validate "${VERSION}") == "valid" ]]; then
+            echo "image-tag-branch-semver-major=${REPOSITORY}:${BRANCH}${PR_BRANCH}-$(./semver get major ${VERSION})" >> $GITHUB_OUTPUT
+            echo "image-tag-branch-semver-major-minor=${REPOSITORY}:${BRANCH}${PR_BRANCH}-$(./semver get major ${VERSION}).$(./semver get minor ${VERSION})" >> $GITHUB_OUTPUT
+            echo "image-tag-branch-semver-major-minor-patch=${REPOSITORY}:${BRANCH}${PR_BRANCH}-$(./semver get major ${VERSION}).$(./semver get minor ${VERSION}).$(./semver get patch ${VERSION})" >> $GITHUB_OUTPUT
+          fi
           [[ $(jq -r '.latest // empty' < VERSION.json) == true ]] && echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
           [[ ${ARCHITECTURE} == linux-amd64 ]] && [[ $(jq -r '.test_amd64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
           [[ ${ARCHITECTURE} == linux-arm64 ]] && [[ $(jq -r '.test_arm64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
@@ -170,13 +180,16 @@ jobs:
         uses: nick-fields/retry@v3
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
-          IMAGE_TAG_FULL_AMD64:     ${{ needs.build.outputs.image-tag-full-amd64 }}
-          IMAGE_TAG_FULL_ARM64:     ${{ needs.build.outputs.image-tag-full-arm64 }}
-          IMAGE_TAG_LATEST:         ${{ needs.build.outputs.image-tag-latest }}
-          IMAGE_TAG_BRANCH:         ${{ needs.build.outputs.image-tag-branch }}
-          IMAGE_TAG_BRANCH_VERSION: ${{ needs.build.outputs.image-tag-branch-version }}
-          IMAGE_TAG_BRANCH_SHA:     ${{ needs.build.outputs.image-tag-branch-sha }}
-          REGISTRY:                 ${{ matrix.registry }}
+          IMAGE_TAG_FULL_AMD64:                      ${{ needs.build.outputs.image-tag-full-amd64 }}
+          IMAGE_TAG_FULL_ARM64:                      ${{ needs.build.outputs.image-tag-full-arm64 }}
+          IMAGE_TAG_LATEST:                          ${{ needs.build.outputs.image-tag-latest }}
+          IMAGE_TAG_BRANCH:                          ${{ needs.build.outputs.image-tag-branch }}
+          IMAGE_TAG_BRANCH_VERSION:                  ${{ needs.build.outputs.image-tag-branch-version }}
+          IMAGE_TAG_BRANCH_SEMVER_MAJOR:             ${{ needs.build.outputs.image-tag-branch-semver-major }}
+          IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR:       ${{ needs.build.outputs.image-tag-branch-semver-major-minor }}
+          IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH: ${{ needs.build.outputs.image-tag-branch-semver-major-minor-patch }}
+          IMAGE_TAG_BRANCH_SHA:                      ${{ needs.build.outputs.image-tag-branch-sha }}
+          REGISTRY:                                  ${{ matrix.registry }}
         with:
           max_attempts: 3
           timeout_minutes: 5
@@ -193,6 +206,11 @@ jobs:
             echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SHA}     ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
             if [[ -n "${IMAGE_TAG_LATEST}" ]]; then
               echo "${REGISTRY}/${IMAGE_TAG_LATEST}       ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+            fi
+            if [[ -n "${IMAGE_TAG_BRANCH_SEMVER_MAJOR}" ]]; then
+              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR}             ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR}       ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH} ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
             fi
             while read manifest; do
               docker manifest create $(awk '{print $1}' <<< ${manifest}) $(awk '{print $2}' <<< ${manifest}) $(awk '{print $3}' <<< ${manifest})
@@ -227,15 +245,18 @@ jobs:
       - name: Update "tags.json" File
         uses: nick-fields/retry@v3
         env:
-          RUN_ID:                   ${{ github.run_id }}
-          REPOSITORY:               ${{ github.repository }}
-          SERVER_URL:               ${{ github.server_url }}
-          IS_LATEST:                ${{ needs.build.outputs.is-latest }}
-          DESCRIPTION:              ${{ needs.build.outputs.description }}
-          HIDE:                     ${{ needs.build.outputs.hide }}
-          IMAGE_TAG_BRANCH:         ${{ needs.build.outputs.image-tag-branch }}
-          IMAGE_TAG_BRANCH_VERSION: ${{ needs.build.outputs.image-tag-branch-version }}
-          IMAGE_TAG_BRANCH_SHA:     ${{ needs.build.outputs.image-tag-branch-sha }}
+          RUN_ID:                                    ${{ github.run_id }}
+          REPOSITORY:                                ${{ github.repository }}
+          SERVER_URL:                                ${{ github.server_url }}
+          IS_LATEST:                                 ${{ needs.build.outputs.is-latest }}
+          DESCRIPTION:                               ${{ needs.build.outputs.description }}
+          HIDE:                                      ${{ needs.build.outputs.hide }}
+          IMAGE_TAG_BRANCH:                          ${{ needs.build.outputs.image-tag-branch }}
+          IMAGE_TAG_BRANCH_VERSION:                  ${{ needs.build.outputs.image-tag-branch-version }}
+          IMAGE_TAG_BRANCH_SEMVER_MAJOR:             ${{ needs.build.outputs.image-tag-branch-semver-major }}
+          IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR:       ${{ needs.build.outputs.image-tag-branch-semver-major-minor }}
+          IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH: ${{ needs.build.outputs.image-tag-branch-semver-major-minor-patch }}
+          IMAGE_TAG_BRANCH_SHA:                      ${{ needs.build.outputs.image-tag-branch-sha }}
         with:
           max_attempts: 3
           timeout_minutes: 5
@@ -249,16 +270,19 @@ jobs:
             [[ ! -f tags.json ]] && echo "{}" > tags.json
             json=$(cat tags.json)
             jq --sort-keys \
-                --arg tag                            "${IMAGE_TAG_BRANCH}" \
-                --arg image_tag_branch_value         "${IMAGE_TAG_BRANCH}" \
-                --arg image_tag_branch_version_value "${IMAGE_TAG_BRANCH_VERSION}" \
-                --arg image_tag_branch_sha_value     "${IMAGE_TAG_BRANCH_SHA}" \
-                --arg last_updated                   "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
-                --arg last_updated_url               "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
-                --argjson latest                     "${IS_LATEST}" \
-                --arg description                    "${DESCRIPTION}" \
-                --argjson hide                       "${HIDE}" \
-                '.[$tag].tags[0] = $image_tag_branch_value | .[$tag].tags[1] = $image_tag_branch_version_value | .[$tag].tags[2] = $image_tag_branch_sha_value | .[$tag].last_updated = $last_updated | .[$tag].latest = $latest | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url | .[$tag].hide = $hide' <<< "${json}" | tee tags.json
+                --arg tag                                             "${IMAGE_TAG_BRANCH}" \
+                --arg image_tag_branch_value                          "${IMAGE_TAG_BRANCH}" \
+                --arg image_tag_branch_version_value                  "${IMAGE_TAG_BRANCH_VERSION}" \
+                --arg image_tag_branch_semver_major_value             "${IMAGE_TAG_BRANCH_SEMVER_MAJOR}" \
+                --arg image_tag_branch_semver_major_minor_value       "${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR}" \
+                --arg image_tag_branch_semver_major_minor_patch_value "${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH}" \
+                --arg image_tag_branch_sha_value                      "${IMAGE_TAG_BRANCH_SHA}" \
+                --arg last_updated                                    "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
+                --arg last_updated_url                                "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
+                --argjson latest                                      "${IS_LATEST}" \
+                --arg description                                     "${DESCRIPTION}" \
+                --argjson hide                                        "${HIDE}" \
+                '.[$tag].tags[0] = $image_tag_branch_value | .[$tag].tags[1] = $image_tag_branch_version_value | .[$tag].tags[2] = $image_tag_branch_sha_value | .[$tag].tags[3] = $image_tag_branch_semver_major_value | .[$tag].tags[4] = $image_tag_branch_semver_major_minor_value | .[$tag].tags[5] = $image_tag_branch_semver_major_minor_patch_value | .[$tag].last_updated = $last_updated | .[$tag].latest = $latest | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url | .[$tag].hide = $hide' <<< "${json}" | tee tags.json
             git pull
             git add .
             if git commit -m "Update tags.json [skip ci]"; then
