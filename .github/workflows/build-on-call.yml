@@ -28,6 +28,7 @@ jobs:
       image-tag-branch-semver-major-minor-patch: ${{ steps.prep.outputs.image-tag-branch-semver-major-minor-patch }}
       image-tag-branch-sha:                      ${{ steps.prep.outputs.image-tag-branch-sha }}
       package-version:                           ${{ steps.prep.outputs.package-version }}
+      created:                                   ${{ steps.prep.outputs.created }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -67,8 +68,7 @@ jobs:
           SHA:              ${{ github.sha }}
           SERVER_URL:       ${{ github.server_url }}
         run: |
-          wget -O ./semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/refs/tags/3.4.0/src/semver
-          chmod +x ./semver
+          wget -O ./semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/refs/tags/3.4.0/src/semver && chmod +x ./semver
           VERSION=$(jq -r '.version // empty' < VERSION.json)
           VERSION=${VERSION//\~/-}
           [[ -z ${VERSION} ]] && VERSION=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y%m%d%H%M%S')
@@ -77,7 +77,7 @@ jobs:
           echo "is-latest=$(jq -r '.latest // false' < VERSION.json)" >> $GITHUB_OUTPUT
           echo "description=$(jq -r '.description // empty' < VERSION.json)" >> $GITHUB_OUTPUT
           echo "hide=$(jq -r '.hide // false' < VERSION.json)" >> $GITHUB_OUTPUT
-          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" >> $GITHUB_OUTPUT
+          echo "created=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y-%m-%dT%H:%M:%S.000Z')" >> $GITHUB_OUTPUT
           echo "revision=${SHA}" >> $GITHUB_OUTPUT
           echo "source=${SERVER_URL}/${REPOSITORY}/tree/${BRANCH}" >> $GITHUB_OUTPUT
           echo "vendor=${REPOSITORY_OWNER}" >> $GITHUB_OUTPUT
@@ -184,6 +184,7 @@ jobs:
         uses: nick-fields/retry@v3
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
+          REGISTRY:                                  ${{ matrix.registry }}
           IMAGE_TAG_FULL_AMD64:                      ${{ needs.build.outputs.image-tag-full-amd64 }}
           IMAGE_TAG_FULL_ARM64:                      ${{ needs.build.outputs.image-tag-full-arm64 }}
           IMAGE_TAG_LATEST:                          ${{ needs.build.outputs.image-tag-latest }}
@@ -193,7 +194,6 @@ jobs:
           IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR:       ${{ needs.build.outputs.image-tag-branch-semver-major-minor }}
           IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH: ${{ needs.build.outputs.image-tag-branch-semver-major-minor-patch }}
           IMAGE_TAG_BRANCH_SHA:                      ${{ needs.build.outputs.image-tag-branch-sha }}
-          REGISTRY:                                  ${{ matrix.registry }}
         with:
           max_attempts: 3
           timeout_minutes: 5
@@ -252,6 +252,7 @@ jobs:
           RUN_ID:                                    ${{ github.run_id }}
           REPOSITORY:                                ${{ github.repository }}
           SERVER_URL:                                ${{ github.server_url }}
+          COMMIT_MESSAGE:                            ${{ github.event.head_commit.message }}
           IS_LATEST:                                 ${{ needs.build.outputs.is-latest }}
           DESCRIPTION:                               ${{ needs.build.outputs.description }}
           HIDE:                                      ${{ needs.build.outputs.hide }}
@@ -261,6 +262,7 @@ jobs:
           IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR:       ${{ needs.build.outputs.image-tag-branch-semver-major-minor }}
           IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH: ${{ needs.build.outputs.image-tag-branch-semver-major-minor-patch }}
           IMAGE_TAG_BRANCH_SHA:                      ${{ needs.build.outputs.image-tag-branch-sha }}
+          CREATED:                                   ${{ needs.build.outputs.created }}
         with:
           max_attempts: 3
           timeout_minutes: 5
@@ -278,12 +280,13 @@ jobs:
                 --arg image_tag_branch_semver_major_minor_value       "${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR/$REPOSITORY:/}" \
                 --arg image_tag_branch_semver_major_minor_patch_value "${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH/$REPOSITORY:/}" \
                 --arg image_tag_branch_sha_value                      "${IMAGE_TAG_BRANCH_SHA/$REPOSITORY:/}" \
-                --arg last_updated                                    "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
+                --arg last_updated                                    "${CREATED}" \
                 --arg last_updated_url                                "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
+                --arg commit_message                                  "${COMMIT_MESSAGE}" \
                 --argjson latest                                      "${IS_LATEST}" \
                 --arg description                                     "${DESCRIPTION}" \
                 --argjson hide                                        "${HIDE}" \
-                '.[$tag].tags[0] = $image_tag_branch_value | .[$tag].tags[1] = $image_tag_branch_version_value | .[$tag].tags[2] = $image_tag_branch_sha_value | .[$tag].tags[3] = $image_tag_branch_semver_major_value | .[$tag].tags[4] = $image_tag_branch_semver_major_minor_value | .[$tag].tags[5] = $image_tag_branch_semver_major_minor_patch_value | .[$tag].last_updated = $last_updated | .[$tag].latest = $latest | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url | .[$tag].hide = $hide' <<< "${json}" | tee tags.json
+                '.[$tag].tags[0] = $image_tag_branch_value | .[$tag].tags[1] = $image_tag_branch_version_value | .[$tag].tags[2] = $image_tag_branch_sha_value | .[$tag].tags[3] = $image_tag_branch_semver_major_value | .[$tag].tags[4] = $image_tag_branch_semver_major_minor_value | .[$tag].tags[5] = $image_tag_branch_semver_major_minor_patch_value | .[$tag].last_updated = $last_updated | .[$tag].commit_message = $commit_message | .[$tag].latest = $latest | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url | .[$tag].hide = $hide' <<< "${json}" | tee tags.json
             git pull
             git add .
             if git commit -m "Update tags.json [skip ci]"; then
@@ -301,17 +304,17 @@ jobs:
       - name: Send Discord Notification
         uses: nick-fields/retry@v3
         env:
-          VERSION:          ${{ needs.build.outputs.version }}
-          STATUS:           ${{ needs.publish.result }}
           DISCORD_WEBHOOK:  ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_MENTIONS: ${{ vars.DISCORD_MENTIONS }}
           COMMIT_MESSAGE:   ${{ github.event.head_commit.message }}
           RUN_ID:           ${{ github.run_id }}
           REPOSITORY:       ${{ github.repository }}
-          SHA:              ${{ github.sha }}
           SERVER_URL:       ${{ github.server_url }}
+          SHA:              ${{ github.sha }}
           IMAGE_TAG_BRANCH: ${{ needs.build.outputs.image-tag-branch }}
-          DISCORD_MENTIONS: ${{ vars.DISCORD_MENTIONS }}
-          PACKAGE_VERSION:  ${{ needs.build.outputs.package-version }}
+          VERSION:          ${{ needs.build.outputs.version }}
+          CREATED:          ${{ needs.build.outputs.created }}
+          STATUS:           ${{ needs.publish.result }}
         with:
           max_attempts: 3
           timeout_minutes: 5
@@ -326,7 +329,7 @@ jobs:
                           --arg     commit_message   "\`\`\`${COMMIT_MESSAGE:----}\`\`\`" \
                           --arg     commit_sha_link  "[${SHA:0:7}](${SERVER_URL}/${REPOSITORY}/commit/${SHA})" \
                           --arg     version          "${VERSION:----}" \
-                          --arg     timestamp        "$(date -u +'%Y-%m-%dT%H:%M:%S.000Z')" \
+                          --arg     timestamp        "${CREATED}" \
                           '{"content": $discord_mentions,
                             "embeds": [
                               {
