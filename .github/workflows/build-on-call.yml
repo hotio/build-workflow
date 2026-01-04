@@ -15,6 +15,7 @@ jobs:
         architecture: [linux-arm64, linux-amd64]
     outputs:
       version:                                   ${{ steps.prep.outputs.version }}
+      revision:                                  ${{ steps.prep.outputs.revision }}
       is-latest:                                 ${{ steps.prep.outputs.is-latest }}
       description:                               ${{ steps.prep.outputs.description }}
       hide:                                      ${{ steps.prep.outputs.hide }}
@@ -253,6 +254,7 @@ jobs:
           REPOSITORY:                                ${{ github.repository }}
           SERVER_URL:                                ${{ github.server_url }}
           COMMIT_MESSAGE:                            ${{ github.event.head_commit.message }}
+          COMMIT_SHA:                                ${{ needs.build.outputs.revision }}
           IS_LATEST:                                 ${{ needs.build.outputs.is-latest }}
           DESCRIPTION:                               ${{ needs.build.outputs.description }}
           HIDE:                                      ${{ needs.build.outputs.hide }}
@@ -283,10 +285,11 @@ jobs:
                 --arg last_updated                                    "${CREATED}" \
                 --arg last_updated_url                                "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
                 --arg commit_message                                  "${COMMIT_MESSAGE}" \
+                --arg commit_sha                                      "${COMMIT_SHA}" \
                 --argjson latest                                      "${IS_LATEST}" \
                 --arg description                                     "${DESCRIPTION}" \
                 --argjson hide                                        "${HIDE}" \
-                '.[$tag].tags[0] = $image_tag_branch_value | .[$tag].tags[1] = $image_tag_branch_version_value | .[$tag].tags[2] = $image_tag_branch_sha_value | .[$tag].tags[3] = $image_tag_branch_semver_major_value | .[$tag].tags[4] = $image_tag_branch_semver_major_minor_value | .[$tag].tags[5] = $image_tag_branch_semver_major_minor_patch_value | .[$tag].last_updated = $last_updated | .[$tag].commit_message = $commit_message | .[$tag].latest = $latest | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url | .[$tag].hide = $hide' <<< "${json}" | tee tags.json
+                '.[$tag].tags[0] = $image_tag_branch_value | .[$tag].tags[1] = $image_tag_branch_version_value | .[$tag].tags[2] = $image_tag_branch_sha_value | .[$tag].tags[3] = $image_tag_branch_semver_major_value | .[$tag].tags[4] = $image_tag_branch_semver_major_minor_value | .[$tag].tags[5] = $image_tag_branch_semver_major_minor_patch_value | .[$tag].last_updated = $last_updated | .[$tag].commit_message = $commit_message | .[$tag].commit_sha = $commit_sha | .[$tag].latest = $latest | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url | .[$tag].hide = $hide' <<< "${json}" | tee tags.json
             git pull
             git add .
             if git commit -m "Update tags.json [skip ci]"; then
