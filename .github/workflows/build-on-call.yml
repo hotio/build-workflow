@@ -245,7 +245,7 @@ jobs:
       - name: Update tags
         uses: nick-fields/retry@v3
         env:
-          PERSONAL_TOKEN:                            ${{ secrets.GITHUB_TOKEN }}
+          PERSONAL_TOKEN:                            ${{ secrets.PERSONAL_TOKEN }}
           RUN_ID:                                    ${{ github.run_id }}
           REPOSITORY:                                ${{ github.repository }}
           REPOSITORY_WEBSITE:                        ${{ github.repository_owner }}/website
@@ -270,8 +270,8 @@ jobs:
           command: |
             rm -rf "${WORKSPACE}/repo"
             git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY}.git" "${WORKSPACE}/repo"
-            #rm -rf "${WORKSPACE}/website"
-            #git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_WEBSITE}.git" "${WORKSPACE}/website"
+            rm -rf "${WORKSPACE}/website"
+            git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_WEBSITE}.git" "${WORKSPACE}/website"
 
             cd "${WORKSPACE}/repo" || exit 1
             git config user.name "github-actions[bot]"
@@ -301,44 +301,43 @@ jobs:
               git push
             fi
             
-            #cd "${WORKSPACE}/website" || exit 1
-            #git config user.name "github-actions[bot]"
-            #git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            cd "${WORKSPACE}/website" || exit 1
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-            #IMAGE=$(basename "${REPOSITORY}")
-            #WEB_FILE="docs/containers/${IMAGE}.md"
-            #[[ ! -f ${WEB_FILE} ]] && exit 0
-            #info_icon="<span class=\"twemoji\" title=\"Click Tag to Copy\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M11 9h2V7h-2m1 13c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m-1 15h2v-6h-2z\"></path></svg></span>"
-            #table_html="<div id=\"tags-table\">\n<table>\n<thead>\n<tr><th>Tags ${info_icon}</th><th>Description</th><th>Commit</th><th>Last Updated</th></tr>\n</thead>\n<tbody>\n"
-            #tags_json=$(cat "${WORKSPACE}/repo/tags.json")
-            #branches=$(jq -r 'keys[]' <<< "${tags_json}")
-            #while IFS= read -r branch; do
-            #    hide=$(jq -r --arg branch "${branch}" '.[$branch].hide' <<< "${tags_json}")
-            #    [[ ${hide} == "true" ]] && continue
-            #    commit_message=$(jq -r --arg branch "${branch}" '.[$branch].commit_message' <<< "${tags_json}")
-            #    commit_sha=$(jq -r --arg branch "${branch}" '.[$branch].commit_sha' <<< "${tags_json}")
-            #    description=$(jq -r --arg branch "${branch}" '.[$branch].description' <<< "${tags_json}")
-            #    last_updated=$(jq -r --arg branch "${branch}" '.[$branch].last_updated' <<< "${tags_json}")
-            #    last_updated=$(date --utc --date "${last_updated}" +"%Y-%m-%d %H:%M:%S")
-            #    last_updated_url=$(jq -r --arg branch "${branch}" '.[$branch].last_updated_url' <<< "${tags_json}")
-            #    latest=$(jq -r --arg branch "${branch}" '.[$branch].latest' <<< "${tags_json}")
-            #    tags_html=""
-            #    [[ ${latest} == "true" ]] && tags_html+="<div class=\"tag-decoration-latest\">latest</div>"
-            #    tags=$(jq -r --arg branch "${branch}" '.[$branch].tags[]' <<< "${tags_json}")
-            #    while IFS= read -r single_tag; do
-            #        tagID="${RANDOM}"
-            #        tags_html+="<div id=\"tag${tagID}\" onclick=\"CopyToClipboard('tag${tagID}');return false;\" class=\"tag-decoration\">${single_tag}</div>"
-            #    done <<< "${tags}"
-            #    table_html+="<tr><td>${tags_html}</td><td>${description}</td><td><a href=\"https://github.com/${REPOSITORY}/commit/${commit_sha}\">${commit_message}</a></td><td><a href=\"${last_updated_url}\">${last_updated}</a></td></tr>\n"
-            #done <<< "${branches}"
-            #table_html+="</tbody>\n</table>\n</div>"
-            #sed -i -z -e "s#<div id=\"tags-table\">.*</div>#${table_html}#" "${WEB_FILE}"
-            #echo "${table_html}"
+            IMAGE=$(basename "${REPOSITORY}")
+            WEB_FILE="docs/containers/${IMAGE}.md"
+            [[ ! -f ${WEB_FILE} ]] && exit 0
+            table_html="<tbody id=\"tags-table-body\">\n"
+            tags_json=$(cat "${WORKSPACE}/repo/tags.json")
+            branches=$(jq -r 'keys[]' <<< "${tags_json}")
+            while IFS= read -r branch; do
+                hide=$(jq -r --arg branch "${branch}" '.[$branch].hide' <<< "${tags_json}")
+                [[ ${hide} == "true" ]] && continue
+                commit_message=$(jq -r --arg branch "${branch}" '.[$branch].commit_message' <<< "${tags_json}")
+                commit_sha=$(jq -r --arg branch "${branch}" '.[$branch].commit_sha' <<< "${tags_json}")
+                description=$(jq -r --arg branch "${branch}" '.[$branch].description' <<< "${tags_json}")
+                last_updated=$(jq -r --arg branch "${branch}" '.[$branch].last_updated' <<< "${tags_json}")
+                last_updated=$(date --utc --date "${last_updated}" +"%Y-%m-%d %H:%M:%S")
+                last_updated_url=$(jq -r --arg branch "${branch}" '.[$branch].last_updated_url' <<< "${tags_json}")
+                latest=$(jq -r --arg branch "${branch}" '.[$branch].latest' <<< "${tags_json}")
+                tags_html=""
+                [[ ${latest} == "true" ]] && tags_html+="<div class=\"tag-decoration-latest\">latest</div>"
+                tags=$(jq -r --arg branch "${branch}" '.[$branch].tags[]' <<< "${tags_json}")
+                while IFS= read -r single_tag; do
+                    tagID="${RANDOM}"
+                    tags_html+="<div id=\"tag${tagID}\" onclick=\"CopyToClipboard('tag${tagID}');return false;\" class=\"tag-decoration\">${single_tag}</div>"
+                done <<< "${tags}"
+                table_html+="<tr><td>${tags_html}</td><td>${description}</td><td><a href=\"https://github.com/${REPOSITORY}/commit/${commit_sha}\">${commit_message}</a></td><td><a href=\"${last_updated_url}\">${last_updated}</a></td></tr>\n"
+            done <<< "${branches}"
+            table_html+="</tbody>"
+            sed -i -z -e "s#<tbody id=\"tags-table-body\">.*</tbody>#${table_html}#" "${WEB_FILE}"
+            echo "${table_html}"
 
-            #git add "${WEB_FILE}"
-            #if git commit -m "Update Tags Table for [${REPOSITORY}]"; then
-            #  git push
-            #fi
+            git add "${WEB_FILE}"
+            if git commit -m "Update Tags Table for [${REPOSITORY}]"; then
+              git push
+            fi
 
   notify:
     runs-on: ubuntu-24.04
