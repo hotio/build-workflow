@@ -314,6 +314,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/website
           ref: master
+          token: ${{ secrets.PERSONAL_TOKEN }}
 
       - name: Download tags.json
         uses: actions/download-artifact@v4
