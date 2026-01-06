@@ -309,13 +309,6 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [tags]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ github.repository_owner }}/website
-          ref: master
-          token: ${{ secrets.PERSONAL_TOKEN }}
-
       - name: Download tags.json
         uses: actions/download-artifact@v4
         with:
@@ -325,11 +318,14 @@ jobs:
         uses: nick-fields/retry@v3
         env:
           REPOSITORY: ${{ github.repository }}
+          REPOSITORY_WEBSITE: ${{ github.repository_owner }}/website
+          PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
         with:
           max_attempts: 3
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
+            git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_WEBSITE}.git" .
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             IMAGE=$(basename "${REPOSITORY}")
