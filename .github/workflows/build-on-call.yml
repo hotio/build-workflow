@@ -330,7 +330,7 @@ jobs:
                     tagID="${RANDOM}"
                     tags_html+="<div id=\"tag${tagID}\" onclick=\"CopyToClipboard('tag${tagID}');return false;\" class=\"tag-decoration\">${single_tag}</div>"
                 done <<< "${tags}"
-                table_html+="<tr><td>${tags_html}</td><td>${description}</td><td>${commit_message}</td><td style=\"white-space:nowrap;\">${last_updated}</td></tr>\n"
+                table_html+="<tr><td>${tags_html}</td><td>${description}</td><td>${commit_message}</td><td>${last_updated}</td></tr>\n"
             done <<< "${branches}"
             table_html+="</tbody>"
             sed -i -z -e "s#<tbody id=\"tags-table-body\">.*</tbody>#${table_html}#" "${WEB_FILE}"
