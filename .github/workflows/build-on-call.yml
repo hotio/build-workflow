@@ -247,7 +247,7 @@ jobs:
         with:
           ref: master
 
-      - name: Update "tags.json" File
+      - name: Update tags.json
         uses: nick-fields/retry@v3
         env:
           RUN_ID:                                    ${{ github.run_id }}
@@ -320,7 +320,7 @@ jobs:
         with:
           name: tags.json
 
-      - name: Update Tags Table
+      - name: Update Table
         uses: nick-fields/retry@v3
         env:
           REPOSITORY: ${{ github.repository }}
