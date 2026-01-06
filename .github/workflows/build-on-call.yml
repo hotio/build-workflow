@@ -316,10 +316,12 @@ jobs:
                 [[ ${hide} == "true" ]] && continue
                 commit_message=$(jq -r --arg branch "${branch}" '.[$branch].commit_message' <<< "${tags_json}")
                 commit_sha=$(jq -r --arg branch "${branch}" '.[$branch].commit_sha' <<< "${tags_json}")
+                [[ -n "${commit_sha}" ]] && commit_message="<a href=\"https://github.com/${REPOSITORY}/commit/${commit_sha}\">${commit_message}</a>"
                 description=$(jq -r --arg branch "${branch}" '.[$branch].description' <<< "${tags_json}")
                 last_updated=$(jq -r --arg branch "${branch}" '.[$branch].last_updated' <<< "${tags_json}")
                 last_updated=$(date --utc --date "${last_updated}" +"%Y-%m-%d %H:%M:%S")
                 last_updated_url=$(jq -r --arg branch "${branch}" '.[$branch].last_updated_url' <<< "${tags_json}")
+                [[ -n "${last_updated_url}" ]] && last_updated="<a href=\"${last_updated_url}\">${last_updated}</a>"
                 latest=$(jq -r --arg branch "${branch}" '.[$branch].latest' <<< "${tags_json}")
                 tags_html=""
                 [[ ${latest} == "true" ]] && tags_html+="<div class=\"tag-decoration-latest\">latest</div>"
@@ -328,7 +330,7 @@ jobs:
                     tagID="${RANDOM}"
                     tags_html+="<div id=\"tag${tagID}\" onclick=\"CopyToClipboard('tag${tagID}');return false;\" class=\"tag-decoration\">${single_tag}</div>"
                 done <<< "${tags}"
-                table_html+="<tr><td>${tags_html}</td><td>${description}</td><td><a href=\"https://github.com/${REPOSITORY}/commit/${commit_sha}\">${commit_message}</a></td><td><a href=\"${last_updated_url}\">${last_updated}</a></td></tr>\n"
+                table_html+="<tr><td>${tags_html}</td><td>${description}</td><td>${commit_message}</td><td>${last_updated}</td></tr>\n"
             done <<< "${branches}"
             table_html+="</tbody>"
             sed -i -z -e "s#<tbody id=\"tags-table-body\">.*</tbody>#${table_html}#" "${WEB_FILE}"
