@@ -242,18 +242,16 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [build, publish]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          ref: master
-
-      - name: Update tags.json
+      - name: Update tags.json and website
         uses: nick-fields/retry@v3
         env:
+          PERSONAL_TOKEN:                            ${{ secrets.PERSONAL_TOKEN }}
           RUN_ID:                                    ${{ github.run_id }}
           REPOSITORY:                                ${{ github.repository }}
+          REPOSITORY_WEBSITE:                        ${{ github.repository_owner }}/website
           SERVER_URL:                                ${{ github.server_url }}
           COMMIT_MESSAGE:                            ${{ github.event.head_commit.message }}
+          WORKSPACE:                                 ${{ github.workspace }}
           COMMIT_SHA:                                ${{ needs.build.outputs.revision }}
           IS_LATEST:                                 ${{ needs.build.outputs.is-latest }}
           DESCRIPTION:                               ${{ needs.build.outputs.description }}
@@ -270,8 +268,15 @@ jobs:
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
+            rm -rf "${WORKSPACE}/repo"
+            git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY}.git" "${WORKSPACE}/repo"
+            rm -rf "${WORKSPACE}/website"
+            git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_WEBSITE}.git" "${WORKSPACE}/website"
+
+            cd "${WORKSPACE}/repo" || exit 1
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
             [[ ! -f tags.json ]] && echo "{}" > tags.json
             json=$(cat tags.json)
             jq --sort-keys \
@@ -290,51 +295,22 @@ jobs:
                 --arg description                                     "${DESCRIPTION}" \
                 --argjson hide                                        "${HIDE}" \
                 '.[$tag].tags[0] = $image_tag_branch_value | .[$tag].tags[1] = $image_tag_branch_version_value | .[$tag].tags[2] = $image_tag_branch_sha_value | .[$tag].tags[3] = $image_tag_branch_semver_major_value | .[$tag].tags[4] = $image_tag_branch_semver_major_minor_value | .[$tag].tags[5] = $image_tag_branch_semver_major_minor_patch_value | .[$tag].last_updated = $last_updated | .[$tag].commit_message = $commit_message | .[$tag].commit_sha = $commit_sha | .[$tag].latest = $latest | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url | .[$tag].hide = $hide' <<< "${json}" | tee tags.json
-            git pull
-            git add .
+            
+            git add tags.json
             if git commit -m "Update tags.json [skip ci]"; then
               git push
             fi
-          new_command_on_retry: |
-            git pull --rebase
-            git push
-
-      - name: Upload tags.json
-        uses: actions/upload-artifact@v6
-        with:
-          name: tags.json
-          path: tags.json
-
-  website-tags:
-    runs-on: ubuntu-24.04
-    needs: [tags]
-    steps:
-      - name: Download tags.json
-        uses: actions/download-artifact@v4
-        with:
-          name: tags.json
-
-      - name: Update Table
-        uses: nick-fields/retry@v3
-        env:
-          REPOSITORY: ${{ github.repository }}
-          REPOSITORY_WEBSITE: ${{ github.repository_owner }}/website
-          PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
-        with:
-          max_attempts: 3
-          timeout_minutes: 5
-          retry_wait_seconds: 30
-          command: |
-            git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_WEBSITE}.git" website
-            cd website || exit 1
+            
+            cd "${WORKSPACE}/website" || exit 1
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            IMAGE=$(basename "${REPOSITORY}")
+
             WEB_FILE="docs/containers/${IMAGE}.md"
             [[ ! -f ${WEB_FILE} ]] && exit 0
+            IMAGE=$(basename "${REPOSITORY}")
             info_icon="<span class=\"twemoji\" title=\"Click Tag to Copy\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M11 9h2V7h-2m1 13c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m-1 15h2v-6h-2z\"></path></svg></span>"
             table_html="<div id=\"tags-table\">\n<table>\n<thead>\n<tr><th>Tags ${info_icon}</th><th>Description</th><th>Commit</th><th>Last Updated</th></tr>\n</thead>\n<tbody>\n"
-            tags_json=$(cat ../tags.json)
+            tags_json=$(cat "${WORKSPACE}/repo/tags.json")
             branches=$(jq -r 'keys[]' <<< "${tags_json}")
             while IFS= read -r branch; do
                 hide=$(jq -r --arg branch "${branch}" '.[$branch].hide' <<< "${tags_json}")
@@ -357,14 +333,11 @@ jobs:
             done <<< "${branches}"
             table_html+="</tbody>\n</table>\n</div>"
             sed -i -z -e "s#<div id=\"tags-table\">.*</div>#${table_html}#" "${WEB_FILE}"
-            git pull
+
             git add "${WEB_FILE}"
             if git commit -m "Update Tags Table for [${REPOSITORY}]"; then
               git push
             fi
-          new_command_on_retry: |
-            git pull --rebase
-            git push
 
   notify:
     runs-on: ubuntu-24.04
