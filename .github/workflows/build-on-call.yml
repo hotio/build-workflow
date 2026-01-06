@@ -299,6 +299,74 @@ jobs:
             git pull --rebase
             git push
 
+      - name: Upload tags.json
+        uses: actions/upload-artifact@v6
+        with:
+          name: tags.json
+          path: tags.json
+
+  website-tags:
+    runs-on: ubuntu-24.04
+    needs: [tags]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/website
+          ref: master
+
+      - name: Download tags.json
+        uses: actions/download-artifact@v4
+        with:
+          name: tags.json
+
+      - name: Update Tags Table
+        uses: nick-fields/retry@v3
+        env:
+          REPOSITORY: ${{ github.repository }}
+        with:
+          max_attempts: 3
+          timeout_minutes: 5
+          retry_wait_seconds: 30
+          command: |
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            IMAGE=$(basename "${REPOSITORY}")
+            WEB_FILE="docs/containers/${IMAGE}.md"
+            [[ ! -f ${WEB_FILE} ]] && exit 0
+            table_html="<div id=\"tags-table\">\n<table>\n<thead>\n<tr><th>Tags</th><th>Description</th><th>Commit</th><th>Last Updated</th></tr>\n</thead>\n<tbody>\n"
+            tags_json=$(cat tags.json)
+            branches=$(jq -r 'keys[]' <<< "${tags_json}")
+            while IFS= read -r branch; do
+                hide=$(jq -r --arg branch "${branch}" '.[$branch].hide' <<< "${tags_json}")
+                [[ ${hide} == "true" ]] && continue
+                commit_message=$(jq -r --arg branch "${branch}" '.[$branch].commit_message' <<< "${tags_json}")
+                commit_sha=$(jq -r --arg branch "${branch}" '.[$branch].commit_sha' <<< "${tags_json}")
+                description=$(jq -r --arg branch "${branch}" '.[$branch].description' <<< "${tags_json}")
+                last_updated=$(jq -r --arg branch "${branch}" '.[$branch].last_updated' <<< "${tags_json}")
+                last_updated=$(date --utc --date "${last_updated}" +"%Y-%m-%d %H:%M:%S")
+                last_updated_url=$(jq -r --arg branch "${branch}" '.[$branch].last_updated_url' <<< "${tags_json}")
+                latest=$(jq -r --arg branch "${branch}" '.[$branch].latest' <<< "${tags_json}")
+                tags_html=""
+                [[ ${latest} == "true" ]] && tags_html+="<div class=\"tag-decoration-latest\">latest</div>"
+                tags=$(jq -r --arg branch "${branch}" '.[$branch].tags[]' <<< "${tags_json}")
+                while IFS= read -r single_tag; do
+                    tagID="${RANDOM}"
+                    tags_html+="<div id=\"tag${tagID}\" onclick=\"CopyToClipboard('tag${tagID}');return false;\" class=\"tag-decoration\">${single_tag}</div>"
+                done <<< "${tags}"
+                table_html+="<tr><td>${tags_html}</td><td>${description}</td><td><a href=\"https://github.com/${REPOSITORY}/commit/${commit_sha}\">${commit_message}</a></td><td><a href=\"${last_updated_url}\">${last_updated}</a></td></tr>\n"
+            done <<< "${branches}"
+            table_html+="</tbody>\n</table>\n</div>"
+            sed -i -z -e "s#<div id=\"tags-table\">.*</div>#${table_html}#" "${WEB_FILE}"
+            git pull
+            git add "${WEB_FILE}"
+            if git commit -m "Update Tags Table for [${REPOSITORY}]"; then
+              git push
+            fi
+          new_command_on_retry: |
+            git pull --rebase
+            git push
+
   notify:
     runs-on: ubuntu-24.04
     if: always()
