@@ -325,7 +325,8 @@ jobs:
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
-            git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_WEBSITE}.git" .
+            git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_WEBSITE}.git" website
+            cd website || exit 1
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             IMAGE=$(basename "${REPOSITORY}")
@@ -333,7 +334,7 @@ jobs:
             [[ ! -f ${WEB_FILE} ]] && exit 0
             info_icon="<span class=\"twemoji\" title=\"Click Tag to Copy\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M11 9h2V7h-2m1 13c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m-1 15h2v-6h-2z\"></path></svg></span>"
             table_html="<div id=\"tags-table\">\n<table>\n<thead>\n<tr><th>Tags ${info_icon}</th><th>Description</th><th>Commit</th><th>Last Updated</th></tr>\n</thead>\n<tbody>\n"
-            tags_json=$(cat tags.json)
+            tags_json=$(cat ../tags.json)
             branches=$(jq -r 'keys[]' <<< "${tags_json}")
             while IFS= read -r branch; do
                 hide=$(jq -r --arg branch "${branch}" '.[$branch].hide' <<< "${tags_json}")
