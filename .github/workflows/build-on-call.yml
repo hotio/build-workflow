@@ -340,7 +340,7 @@ jobs:
 
             git add "${WEB_FILE}"
             git add "${JSON_FILE}"
-            if git commit -m "Update Tags Table for [${REPOSITORY}]"; then
+            if git commit -m "Update Tags for [${REPOSITORY}]"; then
               git push
             fi
 
