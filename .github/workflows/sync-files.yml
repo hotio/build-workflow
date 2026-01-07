@@ -26,7 +26,7 @@ jobs:
               ###########################################
               echo "Do Stuff!"
               #curl -fsSL https://raw.githubusercontent.com/hotio/build-workflow/master/README.md > README.md
-              rm -f README.md
+              rm -f tags.json
               git add --all
               if git commit -m "FileSync Updates [skip ci]"; then
                 git push
