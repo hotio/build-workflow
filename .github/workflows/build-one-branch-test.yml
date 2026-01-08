@@ -1,7 +1,4 @@
-name: Matrix Example
-
-permissions:
-   contents: read
+name: Image Builder
 
 on:
   workflow_dispatch:
