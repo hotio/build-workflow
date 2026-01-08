@@ -399,22 +399,24 @@ jobs:
           REPOSITORY:       ${{ github.repository }}
           SERVER_URL:       ${{ github.server_url }}
           SHA:              ${{ github.sha }}
-          STATUS:           ${{ needs.publish.result }}
+          STATUS_BUILD:     ${{ needs.build.result }}
+          STATUS_PUBLISH:   ${{ needs.publish.result }}
         with:
           max_attempts: 3
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
             CREATED=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y-%m-%dT%H:%M:%S.000Z')
-            [[ "${STATUS}" == "failure" ]] && COLOR="15158332"
-            [[ "${STATUS}" == "failure" ]] && MENTIONS="${DISCORD_MENTIONS}"
+            if [[ "${STATUS_BUILD}" == "failure" ]] || [[ "${STATUS_PUBLISH}" == "failure" ]]; then
+                COLOR="15158332"
+                MENTIONS="${DISCORD_MENTIONS}"
+            fi
             json=$(jq -nc --arg     discord_mentions "${MENTIONS}" \
                           --arg     title            "${RUN_ID}" \
                           --arg     url              "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
                           --argjson color            "${COLOR:-3066993}" \
                           --arg     commit_message   "\`\`\`${COMMIT_MESSAGE:----}\`\`\`" \
                           --arg     commit_sha_link  "[${SHA:0:7}](${SERVER_URL}/${REPOSITORY}/commit/${SHA})" \
-                          --arg     status           "${STATUS}" \
                           --arg     timestamp        "${CREATED}" \
                           '{"content": $discord_mentions,
                             "embeds": [
@@ -430,11 +432,6 @@ jobs:
                                   {
                                     "name": "Commit SHA",
                                     "value": $commit_sha_link,
-                                    "inline": true
-                                  },
-                                  {
-                                    "name": "Status",
-                                    "value": $status,
                                     "inline": true
                                   }
                                 ],
