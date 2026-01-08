@@ -10,7 +10,7 @@ on:
 
 jobs:
   get-image:
-    name: Get image to build
+    name: Find Image
     runs-on: ubuntu-24.04
     outputs:
       images: ${{ steps.changed-folders.outputs.all_changed_and_modified_files }}
@@ -384,6 +384,7 @@ jobs:
             fi
 
   notify:
+    name: Send Notification
     runs-on: ubuntu-24.04
     if: always()
     needs: [build, publish]
