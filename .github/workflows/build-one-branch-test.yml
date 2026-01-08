@@ -226,7 +226,7 @@ jobs:
           [[ $(jq -r '.latest // empty' < VERSION.json) == true ]] && echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
 
       - name: Login to ghcr.io
-        if: (needs.build.result == 'success')
+        if: (needs.build.result == 'success') && (steps.image-exists.outputs.result == 'ok')
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -234,7 +234,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Manifests
-        if: (needs.build.result == 'success')
+        if: (needs.build.result == 'success') && (steps.image-exists.outputs.result == 'ok')
         uses: nick-fields/retry@v3
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
@@ -279,7 +279,7 @@ jobs:
             done < manifest.list
 
       - name: Push Manifests
-        if: (needs.build.result == 'success')
+        if: (needs.build.result == 'success') && (steps.image-exists.outputs.result == 'ok')
         uses: nick-fields/retry@v3
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
@@ -293,7 +293,7 @@ jobs:
             done < manifest.list
 
       - name: Update tags
-        if: (needs.build.result == 'success')
+        if: (needs.build.result == 'success') && (steps.image-exists.outputs.result == 'ok')
         id: update-tags
         uses: nick-fields/retry@v3
         env:
@@ -389,7 +389,7 @@ jobs:
             fi
 
       - name: Send Discord Notification
-        if: always()
+        if:  (steps.image-exists.outputs.result == 'ok')
         uses: nick-fields/retry@v3
         env:
           DISCORD_WEBHOOK:  ${{ secrets.DISCORD_WEBHOOK }}
