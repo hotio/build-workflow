@@ -185,7 +185,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check if Image Exists
+        id: image-exists
+        run: |
+          (test -d ${{ matrix.image }} && echo "result=ok" >> $GITHUB_OUTPUT) || echo "result=nok" >> $GITHUB_OUTPUT
+
       - name: Create Outputs for Next Steps
+        if: (steps.image-exists.outputs.result == 'ok')
         id: prep
         env:
           IMAGE:            ${{ matrix.image }}
