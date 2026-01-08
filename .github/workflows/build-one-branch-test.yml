@@ -173,7 +173,7 @@ jobs:
 
   publish:
     name: Publish Image
-    if: (needs.get-image.outputs.images != '[]')
+    if: (!cancelled()) && (needs.get-image.outputs.images != '[]')
     runs-on: ubuntu-24.04
     needs: [get-image, build]
     strategy:
@@ -389,7 +389,7 @@ jobs:
             fi
 
       - name: Send Discord Notification
-        if: (!cancelled()) &&  (steps.image-exists.outputs.result == 'ok')
+        if: (!cancelled()) && (steps.image-exists.outputs.result == 'ok')
         uses: nick-fields/retry@v3
         env:
           DISCORD_WEBHOOK:  ${{ secrets.DISCORD_WEBHOOK }}
