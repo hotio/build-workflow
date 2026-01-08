@@ -406,12 +406,12 @@ jobs:
           retry_wait_seconds: 30
           command: |
             CREATED=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y-%m-%dT%H:%M:%S.000Z')
-            [[ "${STATUS}" == "failure" ]] && COLOR="3066993"
+            [[ "${STATUS}" == "failure" ]] && COLOR="15158332"
             [[ "${STATUS}" == "failure" ]] && MENTIONS="${DISCORD_MENTIONS}"
             json=$(jq -nc --arg     discord_mentions "${MENTIONS}" \
                           --arg     title            "${RUN_ID}" \
                           --arg     url              "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
-                          --argjson color            "${COLOR:-15158332}" \
+                          --argjson color            "${COLOR:-3066993}" \
                           --arg     commit_message   "\`\`\`${COMMIT_MESSAGE:----}\`\`\`" \
                           --arg     commit_sha_link  "[${SHA:0:7}](${SERVER_URL}/${REPOSITORY}/commit/${SHA})" \
                           --arg     status           "${STATUS}" \
