@@ -9,7 +9,6 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
     strategy:
       matrix:
         include:
@@ -17,6 +16,7 @@ jobs:
           runner: ubuntu-24.04
         - architecture: linux-arm64
           runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     outputs:
       version:                                   ${{ steps.prep.outputs.version }}
       revision:                                  ${{ steps.prep.outputs.revision }}
