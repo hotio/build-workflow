@@ -9,7 +9,7 @@ jobs:
     name: Get image to build
     runs-on: ubuntu-24.04
     outputs:
-      images: ${{ steps.changed-folders.outputs.all_changed_files }}
+      images: ${{ steps.changed-folders.outputs.all_changed_and_modified_files }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -26,7 +26,7 @@ jobs:
           path: 'images/'
           matrix: true
       - name: List all changed image folders
-        run: echo '${{ steps.changed-folders.outputs.all_changed_files }}'
+        run: echo '${{ steps.changed-folders.outputs.all_changed_and_modified_files }}'
 
   build-image:
     name: Build Image
