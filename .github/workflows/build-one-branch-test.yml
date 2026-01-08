@@ -8,17 +8,17 @@ on:
   push:
 
 jobs:
-  get-tags:
-    name: Get changed tag folders
-    runs-on: ubuntu-latest
+  get-image:
+    name: Get image to build
+    runs-on: ubuntu-24.04
     outputs:
-      matrix: ${{ steps.changed-folders.outputs.all_changed_files }}
+      images: ${{ steps.changed-folders.outputs.all_changed_files }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Get changed folders
+      - name: Get changed image folders
         id: changed-folders
         uses: tj-actions/changed-files@v47
         with:
@@ -28,20 +28,21 @@ jobs:
           dir_names_max_depth: '2'
           path: 'images/'
           matrix: true
-      - name: List all changed folders
+      - name: List all changed image folders
         run: echo '${{ steps.changed-folders.outputs.all_changed_files }}'
 
-  matrix-job:
-    name: Run Matrix Job
-    if: (needs.get-tags.outputs.matrix != '')
-    runs-on: ubuntu-latest
-    needs: [get-tags]
+  build-image:
+    name: Build Image
+    if: (needs.get-image.outputs.images != '')
+    runs-on: ubuntu-24.04
+    needs: [get-image]
     strategy:
       matrix: 
-        folders: ${{ fromJSON(needs.get-tags.outputs.matrix) }}
+        images: ${{ fromJSON(needs.get-image.outputs.images) }}
+        architecture: [linux-arm64, linux-amd64]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Test
         run: |
-          echo ${{ matrix.folders }}
+          echo ${{ matrix.images }}/${{ matrix.architecture }}
