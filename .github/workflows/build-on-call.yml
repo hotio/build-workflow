@@ -12,7 +12,11 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        architecture: [linux-arm64, linux-amd64]
+        include:
+        - architecture: linux-amd64
+          runner: ubuntu-24.04
+        - architecture: linux-arm64
+          runner: ubuntu-24.04-arm
     outputs:
       version:                                   ${{ steps.prep.outputs.version }}
       revision:                                  ${{ steps.prep.outputs.revision }}
@@ -38,12 +42,6 @@ jobs:
         id: arch-exists
         run: |
           (test -f ${{ matrix.architecture }}.Dockerfile && echo "result=ok" >> $GITHUB_OUTPUT) || echo "result=nok" >> $GITHUB_OUTPUT
-
-      - name: Set up QEMU
-        if: (steps.arch-exists.outputs.result == 'ok')
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.2
 
       - name: Set up Docker Buildx
         if: (steps.arch-exists.outputs.result == 'ok')
