@@ -50,7 +50,7 @@ jobs:
       - name: Check if Architecture Exists
         id: arch-exists
         run: |
-          (test -f ${{ matrix.image }}/${{ matrix.architecture }}.Dockerfile && echo "result=ok" >> $GITHUB_OUTPUT) || echo "result=nok" >> $GITHUB_OUTPUT
+          (test -f images/${{ matrix.image }}/${{ matrix.architecture }}.Dockerfile && echo "result=ok" >> $GITHUB_OUTPUT) || echo "result=nok" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         if: (steps.arch-exists.outputs.result == 'ok')
@@ -81,7 +81,7 @@ jobs:
           SHA:              ${{ github.sha }}
           SERVER_URL:       ${{ github.server_url }}
         run: |
-          cd "${IMAGE}" || exit 1
+          cd "images/${IMAGE}" || exit 1
           REPOSITORY=$(dirname ${IMAGE})
           BRANCH=$(basename ${IMAGE})
           VERSION=$(jq -r '.version // empty' < VERSION.json)
@@ -188,7 +188,7 @@ jobs:
       - name: Check if Image Exists
         id: image-exists
         run: |
-          (test -d ${{ matrix.image }} && echo "result=ok" >> $GITHUB_OUTPUT) || echo "result=nok" >> $GITHUB_OUTPUT
+          (test -d images/${{ matrix.image }} && echo "result=ok" >> $GITHUB_OUTPUT) || echo "result=nok" >> $GITHUB_OUTPUT
 
       - name: Create Outputs for Next Steps
         if: (steps.image-exists.outputs.result == 'ok')
@@ -199,7 +199,7 @@ jobs:
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           SHA:              ${{ github.sha }}
         run: |
-          cd "${IMAGE}" || exit 1
+          cd "images/${IMAGE}" || exit 1
           REPOSITORY=$(dirname ${IMAGE})
           BRANCH=$(basename ${IMAGE})
           wget -O ./semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/refs/tags/3.4.0/src/semver && chmod +x ./semver
