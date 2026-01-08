@@ -172,7 +172,8 @@ jobs:
             ${{ steps.prep.outputs.package-version }}-*.*
 
   publish:
-    if: always()
+    name: Publish Image
+    if: (needs.get-image.outputs.images != '[]')
     runs-on: ubuntu-24.04
     needs: [get-image, build]
     strategy:
