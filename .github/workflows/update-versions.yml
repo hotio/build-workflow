@@ -19,21 +19,24 @@ jobs:
       - name: Do Work
         env:
           REPOSITORY_OWNER:  ${{ github.repository_owner }}
-          GH_ACTOR:          ${{ github.actor }}
-          GH_TOKEN:          ${{ github.token }}
           PERSONAL_TOKEN:    ${{ secrets.PERSONAL_TOKEN }}
           DISCORD_WEBHOOK:   ${{ secrets.DISCORD_WEBHOOK }}
           REPOSITORY_FILTER: ${{ github.event.client_payload.repo }}
           BRANCH_FILTER:     ${{ github.event.client_payload.branch }}
         run: |
-          while read REPOSITORY; do
+          while IFS= read -r REPOSITORY; do
             while IFS= read -r BRANCH; do
               git clone -b "${BRANCH}" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_OWNER}/${REPOSITORY}.git"
               cd "${REPOSITORY}" || exit 1
               ###########################################
               old_version="$(jq -r '.version' < VERSION.json)"
-              [[ -f update-versions.sh ]] && GITHUB_ACTOR=${GH_ACTOR} GITHUB_TOKEN=${GH_TOKEN} bash ./update-versions.sh || continue
-              if new_version="$(jq -re '.version' < VERSION.json)"; then
+              if [[ -f update-versions.sh ]]; then
+                bash update-versions.sh
+              else
+                continue
+              fi
+              new_version="$(jq -re '.version' < VERSION.json)"
+              if [[ -n ${new_version} ]]; then
                 commit_message="Version update: ${old_version} => ${new_version}"
                 discord_message="Version changes detected: \`${old_version}\` => \`${new_version}\`"
               else
