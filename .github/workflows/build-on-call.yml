@@ -57,14 +57,6 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Login to docker.io
-        if: (steps.platform-exists.outputs.result == 'ok')
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Create Metadata for Next Steps
         if: (steps.platform-exists.outputs.result == 'ok')
         id: meta
@@ -124,7 +116,6 @@ jobs:
           cache-to: type=gha,mode=max
           tags: |
             ghcr.io/${{ steps.meta.outputs.image-tag-full }}
-            docker.io/${{ steps.meta.outputs.image-tag-full }}
           labels: |
             org.opencontainers.image.created=${{ steps.meta.outputs.created }}
             org.opencontainers.image.title=${{ steps.meta.outputs.image-tag-branch }}
@@ -173,7 +164,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        registry: [ghcr.io, docker.io]
+        registry: [ghcr.io]
     needs: [build]
     steps:
       - name: Login to ghcr.io
@@ -183,14 +174,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Login to docker.io
-        if: (matrix.registry == 'docker.io')
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Create Manifests
         uses: nick-fields/retry@v3
