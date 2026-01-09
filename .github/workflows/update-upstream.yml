@@ -23,7 +23,7 @@ jobs:
           while IFS= read -r REPOSITORY; do
             while IFS= read -r BRANCH; do
               git clone -b "${BRANCH}" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_OWNER}/${REPOSITORY}.git"
-              echo "executing bash"
+              ls -la
               cd "${REPOSITORY}" || exit 1
               ###########################################
               upstream_tag_sha_old="$(jq -re '.upstream_tag_sha' < VERSION.json)"
