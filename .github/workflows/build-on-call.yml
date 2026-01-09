@@ -12,54 +12,56 @@ jobs:
     strategy:
       matrix:
         include:
-        - architecture: linux-amd64
+        - platform: linux-amd64
           runner: ubuntu-24.04
-        - architecture: linux-arm64
+        - platform: linux-arm64
           runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     outputs:
-      version:                                   ${{ steps.prep.outputs.version }}
-      revision:                                  ${{ steps.prep.outputs.revision }}
-      is-latest:                                 ${{ steps.prep.outputs.is-latest }}
-      description:                               ${{ steps.prep.outputs.description }}
-      hide:                                      ${{ steps.prep.outputs.hide }}
-      image-tag-full-amd64:                      ${{ steps.prep.outputs.image-tag-full-amd64 }}
-      image-tag-full-arm64:                      ${{ steps.prep.outputs.image-tag-full-arm64 }}
-      image-tag-latest:                          ${{ steps.prep.outputs.image-tag-latest }}
-      image-tag-branch:                          ${{ steps.prep.outputs.image-tag-branch }}
-      image-tag-branch-version:                  ${{ steps.prep.outputs.image-tag-branch-version }}
-      image-tag-branch-semver-major:             ${{ steps.prep.outputs.image-tag-branch-semver-major }}
-      image-tag-branch-semver-major-minor:       ${{ steps.prep.outputs.image-tag-branch-semver-major-minor }}
-      image-tag-branch-semver-major-minor-patch: ${{ steps.prep.outputs.image-tag-branch-semver-major-minor-patch }}
-      image-tag-branch-sha:                      ${{ steps.prep.outputs.image-tag-branch-sha }}
-      package-version:                           ${{ steps.prep.outputs.package-version }}
-      created:                                   ${{ steps.prep.outputs.created }}
+      version:                                   ${{ steps.meta.outputs.version }}
+      revision:                                  ${{ steps.meta.outputs.revision }}
+      is-latest:                                 ${{ steps.meta.outputs.is-latest }}
+      description:                               ${{ steps.meta.outputs.description }}
+      hide:                                      ${{ steps.meta.outputs.hide }}
+      image-tag-full-linux-amd64:                ${{ steps.meta.outputs.image-tag-full-linux-amd64 }}
+      image-tag-full-linux-arm64:                ${{ steps.meta.outputs.image-tag-full-linux-arm64 }}
+      image-tag-latest:                          ${{ steps.meta.outputs.image-tag-latest }}
+      image-tag-branch:                          ${{ steps.meta.outputs.image-tag-branch }}
+      image-tag-branch-version:                  ${{ steps.meta.outputs.image-tag-branch-version }}
+      image-tag-branch-semver-major:             ${{ steps.meta.outputs.image-tag-branch-semver-major }}
+      image-tag-branch-semver-major-minor:       ${{ steps.meta.outputs.image-tag-branch-semver-major-minor }}
+      image-tag-branch-semver-major-minor-patch: ${{ steps.meta.outputs.image-tag-branch-semver-major-minor-patch }}
+      image-tag-branch-sha:                      ${{ steps.meta.outputs.image-tag-branch-sha }}
+      package-version:                           ${{ steps.meta.outputs.package-version }}
+      created:                                   ${{ steps.meta.outputs.created }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-      - name: Check if Architecture Exists
-        id: arch-exists
+      - name: Check if Platform Dockerfile Exists
+        id: platform-exists
         run: |
-          (test -f ${{ matrix.architecture }}.Dockerfile && echo "result=ok" >> $GITHUB_OUTPUT) || echo "result=nok" >> $GITHUB_OUTPUT
+          (test -f ${{ matrix.platform }}.Dockerfile && echo "result=ok" >> $GITHUB_OUTPUT) || echo "result=nok" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
-        if: (steps.arch-exists.outputs.result == 'ok')
+        if: (steps.platform-exists.outputs.result == 'ok')
         uses: docker/setup-buildx-action@v3
 
       - name: Login to ghcr.io
-        if: (steps.arch-exists.outputs.result == 'ok')
+        if: (steps.platform-exists.outputs.result == 'ok')
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Outputs for Next Steps
-        if: (steps.arch-exists.outputs.result == 'ok')
-        id: prep
+      - name: Create Metadata for Next Steps
+        if: (steps.platform-exists.outputs.result == 'ok')
+        id: meta
         env:
-          ARCHITECTURE:     ${{ matrix.architecture }}
+          PLATFORM:         ${{ matrix.platform }}
           BRANCH:           ${{ github.ref_name }}
           RUN_NUMBER:       ${{ github.run_number }}
           REPOSITORY:       ${{ github.repository }}
@@ -81,12 +83,10 @@ jobs:
           echo "source=${SERVER_URL}/${REPOSITORY}/tree/${BRANCH}" >> $GITHUB_OUTPUT
           echo "vendor=${REPOSITORY_OWNER}" >> $GITHUB_OUTPUT
           echo "url=https://hotio.dev/containers/${REPOSITORY/${REPOSITORY_OWNER}\//}" >> $GITHUB_OUTPUT
-          echo "platform=${ARCHITECTURE//-/\/}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "package-version=${BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
-          echo "image-tag-cache=${REPOSITORY}:${BRANCH}${PR_BRANCH}-buildcache-${ARCHITECTURE}" >> $GITHUB_OUTPUT
-          echo "image-tag-full=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${ARCHITECTURE}" >> $GITHUB_OUTPUT
-          echo "image-tag-full-${ARCHITECTURE/linux-/}=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${ARCHITECTURE}" >> $GITHUB_OUTPUT
+          echo "image-tag-full=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${PLATFORM}" >> $GITHUB_OUTPUT
+          echo "image-tag-full-${PLATFORM}=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${PLATFORM}" >> $GITHUB_OUTPUT
           echo "image-tag-branch=${REPOSITORY}:${BRANCH}${PR_BRANCH}" >> $GITHUB_OUTPUT
           echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION}" >> $GITHUB_OUTPUT
           echo "image-tag-branch-sha=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
@@ -96,59 +96,56 @@ jobs:
             echo "image-tag-branch-semver-major-minor-patch=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION}).$(./semver get patch ${VERSION})" >> $GITHUB_OUTPUT
           fi
           [[ $(jq -r '.latest // empty' < VERSION.json) == true ]] && echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
-          [[ ${ARCHITECTURE} == linux-amd64 ]] && [[ $(jq -r '.test_amd64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
-          [[ ${ARCHITECTURE} == linux-arm64 ]] && [[ $(jq -r '.test_arm64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
+          [[ ${PLATFORM} == linux-amd64 ]] && [[ $(jq -r '.test_amd64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
+          [[ ${PLATFORM} == linux-arm64 ]] && [[ $(jq -r '.test_arm64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
             jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
-            echo "BUILD_ARCHITECTURE=${ARCHITECTURE}" >> $GITHUB_OUTPUT
+            echo "BUILD_ARCHITECTURE=${PLATFORM}" >> $GITHUB_OUTPUT
             echo "PACKAGE_VERSION=${BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
             echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${BRANCH}${PR_BRANCH}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Build Image
-        if: (steps.arch-exists.outputs.result == 'ok')
+        if: (steps.platform-exists.outputs.result == 'ok')
         uses: docker/build-push-action@v6
         with:
           provenance: false
           load: true
           push: true
-          platforms: ${{ steps.prep.outputs.platform }}
-          file: ./${{ matrix.architecture }}.Dockerfile
+          file: ./${{ matrix.platform }}.Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/${{ steps.prep.outputs.image-tag-full }}
+            ghcr.io/${{ steps.meta.outputs.image-tag-full }}
           labels: |
-            org.opencontainers.image.created=${{ steps.prep.outputs.created }}
-            org.opencontainers.image.title=${{ steps.prep.outputs.image-tag-branch }}
-            org.opencontainers.image.revision=${{ steps.prep.outputs.revision }}
-            org.opencontainers.image.source=${{ steps.prep.outputs.source }}
-            org.opencontainers.image.vendor=${{ steps.prep.outputs.vendor }}
-            org.opencontainers.image.url=${{ steps.prep.outputs.url }}
-            org.opencontainers.image.version=${{ steps.prep.outputs.version }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.created }}
+            org.opencontainers.image.title=${{ steps.meta.outputs.image-tag-branch }}
+            org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
+            org.opencontainers.image.source=${{ steps.meta.outputs.source }}
+            org.opencontainers.image.vendor=${{ steps.meta.outputs.vendor }}
+            org.opencontainers.image.url=${{ steps.meta.outputs.url }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
           build-args: |
-            ${{ steps.prep.outputs.build-args }}
+            ${{ steps.meta.outputs.build-args }}
 
       - name: List Packages
-        if: (steps.arch-exists.outputs.result == 'ok')
+        if: (steps.platform-exists.outputs.result == 'ok')
         env:
-          IMAGE:           ghcr.io/${{ steps.prep.outputs.image-tag-full }}
-          PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
-          PLATFORM:        ${{ steps.prep.outputs.platform }}
+          IMAGE:           ghcr.io/${{ steps.meta.outputs.image-tag-full }}
+          PACKAGE_VERSION: ${{ steps.meta.outputs.package-version }}
         run: |
-          docker run --platform="${PLATFORM}" --rm --entrypoint="" -v ${GITHUB_WORKSPACE}:/logs -e LOG="/logs/${PACKAGE_VERSION}-packages.log" "${IMAGE}" sh -c 'if grep -q alpine < /etc/os-release; then apk -vv info | sort > ${LOG} 2>&1; else apt list --installed > ${LOG} 2>&1; fi'
+          docker run --rm --entrypoint="" -v ${GITHUB_WORKSPACE}:/logs -e LOG="/logs/${PACKAGE_VERSION}-packages.log" "${IMAGE}" sh -c 'if grep -q alpine < /etc/os-release; then apk -vv info | sort > ${LOG} 2>&1; else apt list --installed > ${LOG} 2>&1; fi'
 
       - name: Smoke Test
-        if: (steps.arch-exists.outputs.result == 'ok') && (steps.prep.outputs.do_smoketest == 'ok')
+        if: (steps.platform-exists.outputs.result == 'ok') && (steps.meta.outputs.do_smoketest == 'ok')
         id: smoketest
         env:
-          IMAGE:           ghcr.io/${{ steps.prep.outputs.image-tag-full }}
-          PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
-          PLATFORM:        ${{ steps.prep.outputs.platform }}
+          IMAGE:           ghcr.io/${{ steps.meta.outputs.image-tag-full }}
+          PACKAGE_VERSION: ${{ steps.meta.outputs.package-version }}
         run: |
           test_url=$(jq -r '.test_url' < VERSION.json)
           exitcode=0
-          docker run --platform="${PLATFORM}" --network host -d --name service "${IMAGE}"
+          docker run --network host -d --name service "${IMAGE}"
           curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 -b /dev/shm/cookie "${test_url}" --output /dev/null || exitcode=$?
           docker logs service > "${PACKAGE_VERSION}-test.log" 2>&1
           [[ ${exitcode} == 0 ]] && echo "result=ok" >> $GITHUB_OUTPUT || echo "result=nok" >> $GITHUB_OUTPUT
@@ -160,9 +157,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: warn
-          name: ${{ steps.prep.outputs.package-version }}-results-${{ matrix.architecture }}
+          name: ${{ steps.meta.outputs.package-version }}-results-${{ matrix.platform }}
           path: |
-            ${{ steps.prep.outputs.package-version }}-*.*
+            ${{ steps.meta.outputs.package-version }}-*.*
 
   publish:
     runs-on: ubuntu-24.04
@@ -184,8 +181,8 @@ jobs:
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
           REGISTRY:                                  ${{ matrix.registry }}
-          IMAGE_TAG_FULL_AMD64:                      ${{ needs.build.outputs.image-tag-full-amd64 }}
-          IMAGE_TAG_FULL_ARM64:                      ${{ needs.build.outputs.image-tag-full-arm64 }}
+          IMAGE_TAG_FULL_LINUX_AMD64:                ${{ needs.build.outputs.image-tag-full-linux-amd64 }}
+          IMAGE_TAG_FULL_LINUX_ARM64:                ${{ needs.build.outputs.image-tag-full-linux-arm64 }}
           IMAGE_TAG_LATEST:                          ${{ needs.build.outputs.image-tag-latest }}
           IMAGE_TAG_BRANCH:                          ${{ needs.build.outputs.image-tag-branch }}
           IMAGE_TAG_BRANCH_VERSION:                  ${{ needs.build.outputs.image-tag-branch-version }}
@@ -198,22 +195,18 @@ jobs:
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
-            if [[ -n "${IMAGE_TAG_FULL_AMD64}" ]]; then
-              IMAGE_TAG_FULL_AMD64=${REGISTRY}/${IMAGE_TAG_FULL_AMD64}
-            fi
-            if [[ -n "${IMAGE_TAG_FULL_ARM64}" ]]; then
-              IMAGE_TAG_FULL_ARM64=${REGISTRY}/${IMAGE_TAG_FULL_ARM64}
-            fi
-            echo "${REGISTRY}/${IMAGE_TAG_BRANCH}         ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" > manifest.list
-            echo "${REGISTRY}/${IMAGE_TAG_BRANCH_VERSION} ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
-            echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SHA}     ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+            [[ -n "${IMAGE_TAG_FULL_LINUX_AMD64}" ]] && IMAGE_TAG_FULL_LINUX_AMD64=${REGISTRY}/${IMAGE_TAG_FULL_LINUX_AMD64}
+            [[ -n "${IMAGE_TAG_FULL_LINUX_ARM64}" ]] && IMAGE_TAG_FULL_LINUX_ARM64=${REGISTRY}/${IMAGE_TAG_FULL_LINUX_ARM64}
+            echo "${REGISTRY}/${IMAGE_TAG_BRANCH}         ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" > manifest.list
+            echo "${REGISTRY}/${IMAGE_TAG_BRANCH_VERSION} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
+            echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SHA}     ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
             if [[ -n "${IMAGE_TAG_LATEST}" ]]; then
-              echo "${REGISTRY}/${IMAGE_TAG_LATEST}       ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+              echo "${REGISTRY}/${IMAGE_TAG_LATEST}       ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
             fi
             if [[ -n "${IMAGE_TAG_BRANCH_SEMVER_MAJOR}" ]]; then
-              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR}             ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
-              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR}       ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
-              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH} ${IMAGE_TAG_FULL_AMD64} ${IMAGE_TAG_FULL_ARM64}" >> manifest.list
+              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR}             ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
+              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR}       ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
+              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
             fi
             while read manifest; do
               docker manifest create $(awk '{print $1}' <<< ${manifest}) $(awk '{print $2}' <<< ${manifest}) $(awk '{print $3}' <<< ${manifest})
