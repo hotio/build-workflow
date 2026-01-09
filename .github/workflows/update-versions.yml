@@ -31,7 +31,7 @@ jobs:
               ###########################################
               old_version="$(jq -r '.version' < VERSION.json)"
               if [[ -f update-versions.sh ]]; then
-                bash update-versions.sh
+                bash update-versions.sh || true
               else
                 continue
               fi
