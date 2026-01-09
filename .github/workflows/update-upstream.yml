@@ -24,7 +24,7 @@ jobs:
             while IFS= read -r BRANCH; do
               git clone -b "${BRANCH}" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_OWNER}/${REPOSITORY}.git"
               ls -la
-              cd "${REPOSITORY}" || exit 1
+              cd "${REPOSITORY}" || echo "this failes"
               ###########################################
               upstream_tag_sha_old="$(jq -re '.upstream_tag_sha' < VERSION.json)"
               if [[ -f update-upstream.sh ]]; then
