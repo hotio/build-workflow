@@ -35,8 +35,7 @@ jobs:
               else
                 continue
               fi
-              new_version="$(jq -re '.version' < VERSION.json)"
-              if [[ -n ${new_version} ]]; then
+              if new_version="$(jq -re '.version' < VERSION.json)"; then
                 commit_message="Version update: ${old_version} => ${new_version}"
                 discord_message="Version changes detected: \`${old_version}\` => \`${new_version}\`"
               else
