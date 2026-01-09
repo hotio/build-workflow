@@ -72,7 +72,6 @@ jobs:
           wget -O ./semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/refs/tags/3.4.0/src/semver && chmod +x ./semver
           VERSION=$(jq -r '.version // empty' < VERSION.json)
           VERSION=${VERSION//\~/-}
-          [[ -z ${VERSION} ]] && VERSION=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y%m%d%H%M%S')
           PR_BRANCH=$(jq -r '.branch // empty' < VERSION.json)
           [[ -n ${PR_BRANCH} ]] && PR_BRANCH=-${PR_BRANCH}
           echo "is-latest=$(jq -r '.latest // false' < VERSION.json)" >> $GITHUB_OUTPUT
@@ -88,7 +87,7 @@ jobs:
           echo "image-tag-full=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${PLATFORM}" >> $GITHUB_OUTPUT
           echo "image-tag-full-${PLATFORM}=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${PLATFORM}" >> $GITHUB_OUTPUT
           echo "image-tag-branch=${REPOSITORY}:${BRANCH}${PR_BRANCH}" >> $GITHUB_OUTPUT
-          echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION}" >> $GITHUB_OUTPUT
+          [[ -n ${VERSION} ]] && echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION}" >> $GITHUB_OUTPUT
           echo "image-tag-branch-sha=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
           if [[ $(./semver validate "${VERSION}") == "valid" ]]; then
             echo "image-tag-branch-semver-major=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION})" >> $GITHUB_OUTPUT
@@ -198,7 +197,9 @@ jobs:
             [[ -n "${IMAGE_TAG_FULL_LINUX_AMD64}" ]] && IMAGE_TAG_FULL_LINUX_AMD64=${REGISTRY}/${IMAGE_TAG_FULL_LINUX_AMD64}
             [[ -n "${IMAGE_TAG_FULL_LINUX_ARM64}" ]] && IMAGE_TAG_FULL_LINUX_ARM64=${REGISTRY}/${IMAGE_TAG_FULL_LINUX_ARM64}
             echo "${REGISTRY}/${IMAGE_TAG_BRANCH}         ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" > manifest.list
-            echo "${REGISTRY}/${IMAGE_TAG_BRANCH_VERSION} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
+            if [[ -n "${IMAGE_TAG_BRANCH_VERSION}" ]]; then
+              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_VERSION} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
+            fi
             echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SHA}     ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
             if [[ -n "${IMAGE_TAG_LATEST}" ]]; then
               echo "${REGISTRY}/${IMAGE_TAG_LATEST}       ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
