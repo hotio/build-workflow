@@ -1,0 +1,68 @@
+name: update-upstream
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 * * * *'
+
+jobs:
+  do-work:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git Config
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Do Work
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GH_ACTOR:         ${{ github.actor }}
+          GH_TOKEN:         ${{ github.token }}
+          PERSONAL_TOKEN:   ${{ secrets.PERSONAL_TOKEN }}
+          DISCORD_WEBHOOK:  ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          while read REPOSITORY; do
+            while IFS= read -r BRANCH; do
+              git clone -b "${BRANCH}" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_OWNER}/${REPOSITORY}.git"
+              cd "${REPOSITORY}" || exit 1
+              ###########################################
+              json=$(cat VERSION.json)
+              upstream_tag_sha_old="$(jq -re '.upstream_tag_sha' <<< "${json}")"
+              [[ -f update-upstream.sh ]] && bash ./update-upstream.sh || continue
+              json=$(cat VERSION.json)
+              if upstream_tag_sha_new="$(jq -re '.upstream_tag_sha' <<< "${json}")"; then
+                commit_message="Upstream update: ${upstream_tag_sha_old} => ${upstream_tag_sha_new}"
+                discord_message="Upstream changes detected: \`${upstream_tag_sha_old}\` => \`${upstream_tag_sha_new}\`"
+              else
+                commit_message="Upstream digest update"
+                discord_message="Upstream digest changes detected."
+              fi
+              [[ "${BRANCH}" == "pr" ]] && commit_message="${commit_message} [skip ci]"
+              git add .
+              if git commit -m "${commit_message}"; then
+                git push
+                GIT_SHA=$(git log -n 1 --pretty=format:"%H")
+                json=$(jq -nc --arg     title       "${REPOSITORY_OWNER}/${REPOSITORY}:${BRANCH}" \
+                              --arg     url         "https://github.com/${REPOSITORY_OWNER}/${REPOSITORY}/commit/${GIT_SHA}" \
+                              --arg     description "${discord_message}" \
+                              --argjson color       "4886754" \
+                              --arg     timestamp   "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" \
+                              '{"embeds": [
+                                {
+                                  "title": $title,
+                                  "url": $url,
+                                  "description": $description,
+                                  "color": $color,
+                                  "footer": {"text": "Powered by GitHub Actions"},
+                                  "timestamp": $timestamp
+                                }
+                              ]}')
+                jq <<< "${json}"
+                curl -fsSL -X POST -H "Content-Type: application/json" -d "${json}" "${DISCORD_WEBHOOK}"
+              fi
+              ###########################################
+              cd .. || exit 1
+              rm -rf "${REPOSITORY}"
+            done < <(curl -u "${GH_ACTOR}:${GH_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re --arg branch_filter "${BRANCH_FILTER}" '.[] | select(.name!="master") | select(.name|test("\($branch_filter)")) | .name')
+          done < <(curl -u "${GH_ACTOR}:${GH_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re --arg repository_filter "${REPOSITORY_FILTER}" '.[] | select(.topics[]=="docker-image") | select(.name|test("\($repository_filter)")) | .name')
