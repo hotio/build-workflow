@@ -68,14 +68,14 @@ jobs:
           SERVER_URL:       ${{ github.server_url }}
         run: |
           wget -O ./semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/refs/tags/3.4.0/src/semver && chmod +x ./semver
-          VERSION=$(jq -r '.version // empty' < VERSION.json)
+          VERSION=$(jq -r '.version // empty' < meta.json)
           VERSION_CLEAN=$(sed 's/[^[:alnum:]\.\_\-]/-/g' <<< "${VERSION}")
-          PR_BRANCH=$(jq -r '.branch // empty' < VERSION.json)
-          IS_LATEST=$(jq -r '.latest // false' < VERSION.json)
+          PR_BRANCH=$(jq -r '.branch // empty' < meta.json)
+          IS_LATEST=$(jq -r '.latest // false' < meta.json)
           [[ -n ${PR_BRANCH} ]] && PR_BRANCH=-${PR_BRANCH}
           echo "is-latest=${IS_LATEST}" >> $GITHUB_OUTPUT
-          echo "description=$(jq -r '.description // empty' < VERSION.json)" >> $GITHUB_OUTPUT
-          echo "hide=$(jq -r '.hide // false' < VERSION.json)" >> $GITHUB_OUTPUT
+          echo "description=$(jq -r '.description // empty' < meta.json)" >> $GITHUB_OUTPUT
+          echo "hide=$(jq -r '.hide // false' < meta.json)" >> $GITHUB_OUTPUT
           echo "created=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y-%m-%dT%H:%M:%S.000Z')" >> $GITHUB_OUTPUT
           echo "source-url=${SERVER_URL}/${REPOSITORY}/tree/${BRANCH}" >> $GITHUB_OUTPUT
           echo "docs-url=https://hotio.dev/containers/${REPOSITORY/${REPOSITORY_OWNER}\//}" >> $GITHUB_OUTPUT
@@ -95,10 +95,10 @@ jobs:
           if [[ ${IS_LATEST} == true ]]; then
             echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
           fi
-          [[ ${PLATFORM} == linux-amd64 ]] && [[ $(jq -r '.test_amd64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
-          [[ ${PLATFORM} == linux-arm64 ]] && [[ $(jq -r '.test_arm64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
+          [[ ${PLATFORM} == linux-amd64 ]] && [[ $(jq -r '.test_amd64' < meta.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
+          [[ ${PLATFORM} == linux-arm64 ]] && [[ $(jq -r '.test_arm64' < meta.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
-            jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
+            jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < meta.json >> $GITHUB_OUTPUT
             echo "BUILD_ARCHITECTURE=${PLATFORM}" >> $GITHUB_OUTPUT
             echo "PACKAGE_VERSION=${BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
             echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${BRANCH}${PR_BRANCH}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
@@ -142,7 +142,7 @@ jobs:
           IMAGE:           ghcr.io/${{ steps.meta.outputs.image-tag-full }}
           PACKAGE_VERSION: ${{ github.ref_name }}-${{ github.sha }}
         run: |
-          test_url=$(jq -r '.test_url' < VERSION.json)
+          test_url=$(jq -r '.test_url' < meta.json)
           exitcode=0
           docker run --network host -d --name service "${IMAGE}"
           curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 -b /dev/shm/cookie "${test_url}" --output /dev/null || exitcode=$?
