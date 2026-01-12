@@ -29,13 +29,13 @@ jobs:
               git clone -b "${BRANCH}" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_OWNER}/${REPOSITORY}.git"
               cd "${REPOSITORY}" || exit 1
               ###########################################
-              old_version="$(jq -r '.version' < VERSION.json)"
+              old_version="$(jq -r '.version' < meta.json)"
               if [[ -f update-versions.sh ]]; then
                 bash update-versions.sh || true
               else
                 continue
               fi
-              if new_version="$(jq -re '.version' < VERSION.json)"; then
+              if new_version="$(jq -re '.version' < meta.json)"; then
                 commit_message="Version update: ${old_version} => ${new_version}"
                 discord_message="Version changes detected: \`${old_version}\` => \`${new_version}\`"
               else

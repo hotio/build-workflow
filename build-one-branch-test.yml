@@ -84,14 +84,14 @@ jobs:
           cd "images/${IMAGE}" || exit 1
           REPOSITORY=$(dirname ${IMAGE})
           BRANCH=$(basename ${IMAGE})
-          VERSION=$(jq -r '.version // empty' < VERSION.json)
+          VERSION=$(jq -r '.version // empty' < meta.json)
           VERSION=${VERSION//\~/-}
           [[ -z ${VERSION} ]] && VERSION=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y%m%d%H%M%S')
-          PR_BRANCH=$(jq -r '.branch // empty' < VERSION.json)
+          PR_BRANCH=$(jq -r '.branch // empty' < meta.json)
           [[ -n ${PR_BRANCH} ]] && PR_BRANCH=-${PR_BRANCH}
-          echo "is-latest=$(jq -r '.latest // false' < VERSION.json)" >> $GITHUB_OUTPUT
-          echo "description=$(jq -r '.description // empty' < VERSION.json)" >> $GITHUB_OUTPUT
-          echo "hide=$(jq -r '.hide // false' < VERSION.json)" >> $GITHUB_OUTPUT
+          echo "is-latest=$(jq -r '.latest // false' < meta.json)" >> $GITHUB_OUTPUT
+          echo "description=$(jq -r '.description // empty' < meta.json)" >> $GITHUB_OUTPUT
+          echo "hide=$(jq -r '.hide // false' < meta.json)" >> $GITHUB_OUTPUT
           echo "created=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y-%m-%dT%H:%M:%S.000Z')" >> $GITHUB_OUTPUT
           echo "revision=${SHA}" >> $GITHUB_OUTPUT
           echo "title=${REPOSITORY}:${BRANCH}${PR_BRANCH}" >> $GITHUB_OUTPUT
@@ -102,10 +102,10 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "package-version=${BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
           echo "image-tag-full=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${ARCHITECTURE}" >> $GITHUB_OUTPUT
-          [[ ${ARCHITECTURE} == linux-amd64 ]] && [[ $(jq -r '.test_amd64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
-          [[ ${ARCHITECTURE} == linux-arm64 ]] && [[ $(jq -r '.test_arm64' < VERSION.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
+          [[ ${ARCHITECTURE} == linux-amd64 ]] && [[ $(jq -r '.test_amd64' < meta.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
+          [[ ${ARCHITECTURE} == linux-arm64 ]] && [[ $(jq -r '.test_arm64' < meta.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
-            jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json >> $GITHUB_OUTPUT
+            jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < meta.json >> $GITHUB_OUTPUT
             echo "BUILD_ARCHITECTURE=${ARCHITECTURE}" >> $GITHUB_OUTPUT
             echo "PACKAGE_VERSION=${BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
             echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${BRANCH}${PR_BRANCH}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
@@ -153,7 +153,7 @@ jobs:
           PACKAGE_VERSION: ${{ steps.prep.outputs.package-version }}
           PLATFORM:        ${{ steps.prep.outputs.platform }}
         run: |
-          test_url=$(jq -r '.test_url' < VERSION.json)
+          test_url=$(jq -r '.test_url' < meta.json)
           exitcode=0
           docker run --platform="${PLATFORM}" --network host -d --name service "${IMAGE}"
           curl -fsSL --retry-all-errors --retry 60 --retry-max-time 120 -m 10 -b /dev/shm/cookie "${test_url}" --output /dev/null || exitcode=$?
@@ -202,14 +202,14 @@ jobs:
           REPOSITORY=$(dirname ${IMAGE})
           BRANCH=$(basename ${IMAGE})
           wget -O ./semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/refs/tags/3.4.0/src/semver && chmod +x ./semver
-          VERSION=$(jq -r '.version // empty' < VERSION.json)
+          VERSION=$(jq -r '.version // empty' < meta.json)
           VERSION=${VERSION//\~/-}
           [[ -z ${VERSION} ]] && VERSION=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y%m%d%H%M%S')
-          PR_BRANCH=$(jq -r '.branch // empty' < VERSION.json)
+          PR_BRANCH=$(jq -r '.branch // empty' < meta.json)
           [[ -n ${PR_BRANCH} ]] && PR_BRANCH=-${PR_BRANCH}
-          echo "is-latest=$(jq -r '.latest // false' < VERSION.json)" >> $GITHUB_OUTPUT
-          echo "description=$(jq -r '.description // empty' < VERSION.json)" >> $GITHUB_OUTPUT
-          echo "hide=$(jq -r '.hide // false' < VERSION.json)" >> $GITHUB_OUTPUT
+          echo "is-latest=$(jq -r '.latest // false' < meta.json)" >> $GITHUB_OUTPUT
+          echo "description=$(jq -r '.description // empty' < meta.json)" >> $GITHUB_OUTPUT
+          echo "hide=$(jq -r '.hide // false' < meta.json)" >> $GITHUB_OUTPUT
           echo "created=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y-%m-%dT%H:%M:%S.000Z')" >> $GITHUB_OUTPUT
           echo "revision=${SHA}" >> $GITHUB_OUTPUT
           [[ -f ${IMAGE}/linux-amd64.Dockerfile ]] && echo "image-tag-full-amd64=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-amd64" >> $GITHUB_OUTPUT
@@ -222,7 +222,7 @@ jobs:
             echo "image-tag-branch-semver-major-minor=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION})" >> $GITHUB_OUTPUT
             echo "image-tag-branch-semver-major-minor-patch=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION}).$(./semver get patch ${VERSION})" >> $GITHUB_OUTPUT
           fi
-          [[ $(jq -r '.latest // empty' < VERSION.json) == true ]] && echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
+          [[ $(jq -r '.latest // empty' < meta.json) == true ]] && echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
 
       - name: Login to ghcr.io
         uses: docker/login-action@v3

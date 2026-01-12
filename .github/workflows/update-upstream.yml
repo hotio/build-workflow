@@ -25,13 +25,13 @@ jobs:
               git clone -b "${BRANCH}" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_OWNER}/${REPOSITORY}.git"
               cd "${REPOSITORY}" || exit 1
               ###########################################
-              upstream_tag_sha_old="$(jq -r '.upstream_tag_sha' < VERSION.json)"
+              upstream_tag_sha_old="$(jq -r '.upstream_tag_sha' < meta.json)"
               if [[ -f update-upstream.sh ]]; then
                 bash update-upstream.sh || true
               else
                 continue
               fi
-              if upstream_tag_sha_new="$(jq -re '.upstream_tag_sha' < VERSION.json)"; then
+              if upstream_tag_sha_new="$(jq -re '.upstream_tag_sha' < meta.json)"; then
                 commit_message="Upstream update: ${upstream_tag_sha_old} => ${upstream_tag_sha_new}"
                 discord_message="Upstream changes detected: \`${upstream_tag_sha_old}\` => \`${upstream_tag_sha_new}\`"
               else
