@@ -27,10 +27,10 @@ jobs:
       image-tag-full-linux-arm64:                ${{ steps.meta.outputs.image-tag-full-linux-arm64 }}
       image-tag-branch:                          ${{ steps.meta.outputs.image-tag-branch }}
       image-tag-branch-sha:                      ${{ steps.meta.outputs.image-tag-branch-sha }}
+      image-tag-branch-version:                  ${{ steps.meta.outputs.image-tag-branch-version }}
       image-tag-branch-semver-major:             ${{ steps.meta.outputs.image-tag-branch-semver-major }}
       image-tag-branch-semver-major-minor:       ${{ steps.meta.outputs.image-tag-branch-semver-major-minor }}
       image-tag-branch-semver-major-minor-patch: ${{ steps.meta.outputs.image-tag-branch-semver-major-minor-patch }}
-      image-tag-branch-version:                  ${{ steps.meta.outputs.image-tag-branch-version }}
       image-tag-latest:                          ${{ steps.meta.outputs.image-tag-latest }}
     steps:
       - name: Checkout
@@ -84,14 +84,13 @@ jobs:
           echo "image-tag-full-${PLATFORM}=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${PLATFORM}" >> $GITHUB_OUTPUT
           echo "image-tag-branch=${REPOSITORY}:${BRANCH}${PR_BRANCH}" >> $GITHUB_OUTPUT
           echo "image-tag-branch-sha=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
+          if [[ -n ${VERSION_CLEAN} ]]; then
+            echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION_CLEAN}" >> $GITHUB_OUTPUT
+          fi
           if [[ $(./semver validate "${VERSION}") == "valid" ]]; then
             echo "image-tag-branch-semver-major=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION})" >> $GITHUB_OUTPUT
             echo "image-tag-branch-semver-major-minor=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION})" >> $GITHUB_OUTPUT
             echo "image-tag-branch-semver-major-minor-patch=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION}).$(./semver get patch ${VERSION})" >> $GITHUB_OUTPUT
-          else
-            if [[ -n ${VERSION_CLEAN} ]]; then
-              echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION_CLEAN}" >> $GITHUB_OUTPUT
-            fi
           fi
           if [[ ${IS_LATEST} == true ]]; then
             echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
@@ -185,10 +184,10 @@ jobs:
           IMAGE_TAG_FULL_LINUX_ARM64:                ${{ needs.build.outputs.image-tag-full-linux-arm64 }}
           IMAGE_TAG_BRANCH:                          ${{ needs.build.outputs.image-tag-branch }}
           IMAGE_TAG_BRANCH_SHA:                      ${{ needs.build.outputs.image-tag-branch-sha }}
+          IMAGE_TAG_BRANCH_VERSION:                  ${{ needs.build.outputs.image-tag-branch-version }}
           IMAGE_TAG_BRANCH_SEMVER_MAJOR:             ${{ needs.build.outputs.image-tag-branch-semver-major }}
           IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR:       ${{ needs.build.outputs.image-tag-branch-semver-major-minor }}
           IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH: ${{ needs.build.outputs.image-tag-branch-semver-major-minor-patch }}
-          IMAGE_TAG_BRANCH_VERSION:                  ${{ needs.build.outputs.image-tag-branch-version }}
           IMAGE_TAG_LATEST:                          ${{ needs.build.outputs.image-tag-latest }}
         with:
           max_attempts: 3
@@ -199,13 +198,13 @@ jobs:
             [[ -n "${IMAGE_TAG_FULL_LINUX_ARM64}" ]] && IMAGE_TAG_FULL_LINUX_ARM64=${REGISTRY}/${IMAGE_TAG_FULL_LINUX_ARM64}
             echo "${REGISTRY}/${IMAGE_TAG_BRANCH} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" > manifest.list
             echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SHA} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
+            if [[ -n "${IMAGE_TAG_BRANCH_VERSION}" ]]; then
+              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_VERSION} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
+            fi
             if [[ -n "${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH}" ]]; then
               echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
               echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
               echo "${REGISTRY}/${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
-            fi
-            if [[ -n "${IMAGE_TAG_BRANCH_VERSION}" ]]; then
-              echo "${REGISTRY}/${IMAGE_TAG_BRANCH_VERSION} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
             fi
             if [[ -n "${IMAGE_TAG_LATEST}" ]]; then
               echo "${REGISTRY}/${IMAGE_TAG_LATEST} ${IMAGE_TAG_FULL_LINUX_AMD64} ${IMAGE_TAG_FULL_LINUX_ARM64}" >> manifest.list
@@ -252,10 +251,10 @@ jobs:
           CREATED:                                   ${{ needs.build.outputs.created }}
           IMAGE_TAG_BRANCH:                          ${{ needs.build.outputs.image-tag-branch }}
           IMAGE_TAG_BRANCH_SHA:                      ${{ needs.build.outputs.image-tag-branch-sha }}
+          IMAGE_TAG_BRANCH_VERSION:                  ${{ needs.build.outputs.image-tag-branch-version }}
           IMAGE_TAG_BRANCH_SEMVER_MAJOR:             ${{ needs.build.outputs.image-tag-branch-semver-major }}
           IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR:       ${{ needs.build.outputs.image-tag-branch-semver-major-minor }}
           IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH: ${{ needs.build.outputs.image-tag-branch-semver-major-minor-patch }}
-          IMAGE_TAG_BRANCH_VERSION:                  ${{ needs.build.outputs.image-tag-branch-version }}
           IMAGE_TAG_LATEST:                          ${{ needs.build.outputs.image-tag-latest }}
         with:
           max_attempts: 3
@@ -279,10 +278,10 @@ jobs:
                 --arg tag                                       "${IMAGE_TAG_BRANCH/$REPOSITORY:/}" \
                 --arg image_tag_branch                          "${IMAGE_TAG_BRANCH/$REPOSITORY:/}" \
                 --arg image_tag_branch_sha                      "${IMAGE_TAG_BRANCH_SHA/$REPOSITORY:/}" \
+                --arg image_tag_branch_version                  "${IMAGE_TAG_BRANCH_VERSION/$REPOSITORY:/}" \
                 --arg image_tag_branch_semver_major             "${IMAGE_TAG_BRANCH_SEMVER_MAJOR/$REPOSITORY:/}" \
                 --arg image_tag_branch_semver_major_minor       "${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR/$REPOSITORY:/}" \
                 --arg image_tag_branch_semver_major_minor_patch "${IMAGE_TAG_BRANCH_SEMVER_MAJOR_MINOR_PATCH/$REPOSITORY:/}" \
-                --arg image_tag_branch_version                  "${IMAGE_TAG_BRANCH_VERSION/$REPOSITORY:/}" \
                 --arg image_tag_latest                          "${IMAGE_TAG_LATEST/$REPOSITORY:/}" \
                 --arg last_updated                              "${CREATED}" \
                 --arg last_updated_url                          "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}" \
@@ -290,7 +289,7 @@ jobs:
                 --arg commit_sha                                "${COMMIT_SHA}" \
                 --arg description                               "${DESCRIPTION}" \
                 --argjson hide                                  "${HIDE}" \
-                '.[$tag].tags[0] = $image_tag_latest | .[$tag].tags[1] = $image_tag_branch | .[$tag].tags[2] = $image_tag_branch_sha | .[$tag].tags[3] = $image_tag_branch_semver_major | .[$tag].tags[4] = $image_tag_branch_semver_major_minor | .[$tag].tags[5] = $image_tag_branch_semver_major_minor_patch | .[$tag].tags[6] = $image_tag_branch_version | .[$tag].last_updated = $last_updated | .[$tag].commit_message = $commit_message | .[$tag].commit_sha = $commit_sha | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url | .[$tag].hide = $hide' <<< "${json}" | tee ${JSON_FILE}
+                '.[$tag].tags[0] = $image_tag_latest | .[$tag].tags[1] = $image_tag_branch | .[$tag].tags[2] = $image_tag_branch_sha | .[$tag].tags[3] = $image_tag_branch_version | .[$tag].tags[4] = $image_tag_branch_semver_major | .[$tag].tags[5] = $image_tag_branch_semver_major_minor | .[$tag].tags[6] = $image_tag_branch_semver_major_minor_patch | .[$tag].last_updated = $last_updated | .[$tag].commit_message = $commit_message | .[$tag].commit_sha = $commit_sha | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url | .[$tag].hide = $hide' <<< "${json}" | tee ${JSON_FILE}
 
             [[ ! -f ${WEB_FILE} ]] && exit 0
             table_html="<tbody id=\"tags-table-body\">\n"
