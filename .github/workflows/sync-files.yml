@@ -25,8 +25,9 @@ jobs:
               cd "${REPOSITORY}" || exit 1
               ###########################################
               echo "Do Stuff!"
-              curl -fsSL https://raw.githubusercontent.com/hotio/base/refs/heads/alpinevpn/.dockerignore > .dockerignore
+              #curl -fsSL https://raw.githubusercontent.com/hotio/base/refs/heads/alpinevpn/.dockerignore > .dockerignore
               #rm -f tags.json
+              mv VERSION.json meta.json
               git add --all
               if git commit -m "FileSync Updates [skip ci]"; then
                 git push
