@@ -87,10 +87,10 @@ jobs:
           if [[ -n ${VERSION_CLEAN} ]]; then
             echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION_CLEAN}" >> $GITHUB_OUTPUT
           fi
-          if [[ $(./semver validate "${VERSION}") == "valid" ]]; then
-            echo "image-tag-branch-semver-major=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION})" >> $GITHUB_OUTPUT
-            echo "image-tag-branch-semver-major-minor=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION})" >> $GITHUB_OUTPUT
-            echo "image-tag-branch-semver-major-minor-patch=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION}).$(./semver get patch ${VERSION})" >> $GITHUB_OUTPUT
+          if [[ $(./semver validate "${VERSION_CLEAN}") == "valid" ]]; then
+            echo "image-tag-branch-semver-major=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION_CLEAN})" >> $GITHUB_OUTPUT
+            echo "image-tag-branch-semver-major-minor=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION_CLEAN}).$(./semver get minor ${VERSION_CLEAN})" >> $GITHUB_OUTPUT
+            echo "image-tag-branch-semver-major-minor-patch=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION_CLEAN}).$(./semver get minor ${VERSION_CLEAN}).$(./semver get patch ${VERSION_CLEAN})" >> $GITHUB_OUTPUT
           fi
           if [[ ${IS_LATEST} == true ]]; then
             echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
