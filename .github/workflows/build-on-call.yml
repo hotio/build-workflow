@@ -100,7 +100,6 @@ jobs:
           [[ ${PLATFORM} == linux-arm64 ]] && [[ $(jq -r '.test_arm64' < meta.json) == true ]] && echo "do_smoketest=ok" >> $GITHUB_OUTPUT
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
             jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < meta.json >> $GITHUB_OUTPUT
-            echo "BUILD_ARCHITECTURE=${PLATFORM}" >> $GITHUB_OUTPUT
             echo "PACKAGE_VERSION=${TAG}-${SHA:0:7}" >> $GITHUB_OUTPUT
             echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${TAG}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
