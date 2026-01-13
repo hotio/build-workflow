@@ -18,11 +18,10 @@ jobs:
           runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     outputs:
-      version:                                   ${{ steps.meta.outputs.version }}
-      is-latest:                                 ${{ steps.meta.outputs.is-latest }}
-      description:                               ${{ steps.meta.outputs.description }}
-      hide:                                      ${{ steps.meta.outputs.hide }}
-      created:                                   ${{ steps.meta.outputs.created }}
+      meta-version:                              ${{ steps.meta.outputs.meta-version }}
+      meta-description:                          ${{ steps.meta.outputs.meta-description }}
+      meta-hide:                                 ${{ steps.meta.outputs.meta-hide }}
+      meta-created:                              ${{ steps.meta.outputs.meta-created }}
       image-tag-full-linux-amd64:                ${{ steps.meta.outputs.image-tag-full-linux-amd64 }}
       image-tag-full-linux-arm64:                ${{ steps.meta.outputs.image-tag-full-linux-arm64 }}
       image-tag-branch:                          ${{ steps.meta.outputs.image-tag-branch }}
@@ -70,27 +69,29 @@ jobs:
           wget -O ./semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/refs/tags/3.4.0/src/semver && chmod +x ./semver
           VERSION=$(jq -r '.version // empty' < meta.json)
           VERSION_CLEAN=$(sed 's/[^[:alnum:]\.\_\-]/-/g' <<< "${VERSION}")
-          PR_BRANCH=$(jq -r '.branch // empty' < meta.json)
           IS_LATEST=$(jq -r '.latest // false' < meta.json)
-          [[ -n ${PR_BRANCH} ]] && PR_BRANCH=-${PR_BRANCH}
-          echo "is-latest=${IS_LATEST}" >> $GITHUB_OUTPUT
-          echo "description=$(jq -r '.description // empty' < meta.json)" >> $GITHUB_OUTPUT
-          echo "hide=$(jq -r '.hide // false' < meta.json)" >> $GITHUB_OUTPUT
-          echo "created=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y-%m-%dT%H:%M:%S.000Z')" >> $GITHUB_OUTPUT
-          echo "source-url=${SERVER_URL}/${REPOSITORY}/tree/${BRANCH}" >> $GITHUB_OUTPUT
-          echo "docs-url=https://hotio.dev/containers/${REPOSITORY/${REPOSITORY_OWNER}\//}" >> $GITHUB_OUTPUT
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "image-tag-full=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${PLATFORM}" >> $GITHUB_OUTPUT
-          echo "image-tag-full-${PLATFORM}=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}-${RUN_NUMBER}-${PLATFORM}" >> $GITHUB_OUTPUT
-          echo "image-tag-branch=${REPOSITORY}:${BRANCH}${PR_BRANCH}" >> $GITHUB_OUTPUT
-          echo "image-tag-branch-sha=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
+          if [[ ${BRANCH} == "pr" ]]; then
+            TAG="pr-$(jq -r '.version_branch // empty' < meta.json)"
+          else
+            TAG="${BRANCH}"
+          fi
+          echo "meta-description=$(jq -r '.description // empty' < meta.json)" >> $GITHUB_OUTPUT
+          echo "meta-hide=$(jq -r '.hide // false' < meta.json)" >> $GITHUB_OUTPUT
+          echo "meta-created=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y-%m-%dT%H:%M:%S.000Z')" >> $GITHUB_OUTPUT
+          echo "meta-source-url=${SERVER_URL}/${REPOSITORY}/tree/${BRANCH}" >> $GITHUB_OUTPUT
+          echo "meta-docs-url=https://hotio.dev/containers/${REPOSITORY/${REPOSITORY_OWNER}\//}" >> $GITHUB_OUTPUT
+          echo "meta-version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "image-tag-full=${REPOSITORY}:${TAG}-${SHA:0:7}-${RUN_NUMBER}-${PLATFORM}" >> $GITHUB_OUTPUT
+          echo "image-tag-full-${PLATFORM}=${REPOSITORY}:${TAG}-${SHA:0:7}-${RUN_NUMBER}-${PLATFORM}" >> $GITHUB_OUTPUT
+          echo "image-tag-branch=${REPOSITORY}:${TAG}" >> $GITHUB_OUTPUT
+          echo "image-tag-branch-sha=${REPOSITORY}:${TAG}-${SHA:0:7}" >> $GITHUB_OUTPUT
           if [[ -n ${VERSION_CLEAN} ]]; then
-            echo "image-tag-branch-version=${REPOSITORY}:${BRANCH}${PR_BRANCH}-${VERSION_CLEAN}" >> $GITHUB_OUTPUT
+            echo "image-tag-branch-version=${REPOSITORY}:${TAG}-${VERSION_CLEAN}" >> $GITHUB_OUTPUT
           fi
           if [[ $(./semver validate "${VERSION}") == "valid" ]]; then
-            echo "image-tag-branch-semver-major=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION})" >> $GITHUB_OUTPUT
-            echo "image-tag-branch-semver-major-minor=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION})" >> $GITHUB_OUTPUT
-            echo "image-tag-branch-semver-major-minor-patch=${REPOSITORY}:${BRANCH}${PR_BRANCH}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION}).$(./semver get patch ${VERSION})" >> $GITHUB_OUTPUT
+            echo "image-tag-branch-semver-major=${REPOSITORY}:${TAG}-v$(./semver get major ${VERSION})" >> $GITHUB_OUTPUT
+            echo "image-tag-branch-semver-major-minor=${REPOSITORY}:${TAG}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION})" >> $GITHUB_OUTPUT
+            echo "image-tag-branch-semver-major-minor-patch=${REPOSITORY}:${TAG}-v$(./semver get major ${VERSION}).$(./semver get minor ${VERSION}).$(./semver get patch ${VERSION})" >> $GITHUB_OUTPUT
           fi
           if [[ ${IS_LATEST} == true ]]; then
             echo "image-tag-latest=${REPOSITORY}:latest" >> $GITHUB_OUTPUT
@@ -100,8 +101,8 @@ jobs:
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
             jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < meta.json >> $GITHUB_OUTPUT
             echo "BUILD_ARCHITECTURE=${PLATFORM}" >> $GITHUB_OUTPUT
-            echo "PACKAGE_VERSION=${BRANCH}-${SHA:0:7}" >> $GITHUB_OUTPUT
-            echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${BRANCH}${PR_BRANCH}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
+            echo "PACKAGE_VERSION=${TAG}-${SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${TAG}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Build Image
@@ -117,13 +118,13 @@ jobs:
           tags: |
             ghcr.io/${{ steps.meta.outputs.image-tag-full }}
           labels: |
-            org.opencontainers.image.created=${{ steps.meta.outputs.created }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.meta-created }}
             org.opencontainers.image.title=${{ steps.meta.outputs.image-tag-branch }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.source=${{ steps.meta.outputs.source-url }}
+            org.opencontainers.image.source=${{ steps.meta.outputs.meta-source-url }}
             org.opencontainers.image.vendor=${{ github.repository_owner }}
-            org.opencontainers.image.url=${{ steps.meta.outputs.docs-url }}
-            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.url=${{ steps.meta.outputs.meta-docs-url }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.meta-version }}
           build-args: |
             ${{ steps.meta.outputs.build-args }}
 
@@ -231,6 +232,7 @@ jobs:
             done < manifest.list
 
   tags:
+    if: (needs.build.outputs.meta-hide != 'true')
     runs-on: ubuntu-24.04
     needs: [build, publish]
     steps:
@@ -245,10 +247,8 @@ jobs:
           SERVER_URL:                                ${{ github.server_url }}
           COMMIT_MESSAGE:                            ${{ github.event.head_commit.message }}
           COMMIT_SHA:                                ${{ github.sha }}
-          IS_LATEST:                                 ${{ needs.build.outputs.is-latest }}
-          DESCRIPTION:                               ${{ needs.build.outputs.description }}
-          HIDE:                                      ${{ needs.build.outputs.hide }}
-          CREATED:                                   ${{ needs.build.outputs.created }}
+          DESCRIPTION:                               ${{ needs.build.outputs.meta-description }}
+          CREATED:                                   ${{ needs.build.outputs.meta-created }}
           IMAGE_TAG_BRANCH:                          ${{ needs.build.outputs.image-tag-branch }}
           IMAGE_TAG_BRANCH_SHA:                      ${{ needs.build.outputs.image-tag-branch-sha }}
           IMAGE_TAG_BRANCH_VERSION:                  ${{ needs.build.outputs.image-tag-branch-version }}
@@ -288,16 +288,13 @@ jobs:
                 --arg commit_message                            "${COMMIT_MESSAGE}" \
                 --arg commit_sha                                "${COMMIT_SHA}" \
                 --arg description                               "${DESCRIPTION}" \
-                --argjson hide                                  "${HIDE}" \
-                '.[$tag].tags[0] = $image_tag_latest | .[$tag].tags[1] = $image_tag_branch | .[$tag].tags[2] = $image_tag_branch_sha | .[$tag].tags[3] = $image_tag_branch_version | .[$tag].tags[4] = $image_tag_branch_semver_major | .[$tag].tags[5] = $image_tag_branch_semver_major_minor | .[$tag].tags[6] = $image_tag_branch_semver_major_minor_patch | .[$tag].last_updated = $last_updated | .[$tag].commit_message = $commit_message | .[$tag].commit_sha = $commit_sha | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url | .[$tag].hide = $hide' <<< "${json}" | tee ${JSON_FILE}
+                '.[$tag].tags[0] = $image_tag_latest | .[$tag].tags[1] = $image_tag_branch | .[$tag].tags[2] = $image_tag_branch_sha | .[$tag].tags[3] = $image_tag_branch_version | .[$tag].tags[4] = $image_tag_branch_semver_major | .[$tag].tags[5] = $image_tag_branch_semver_major_minor | .[$tag].tags[6] = $image_tag_branch_semver_major_minor_patch | .[$tag].last_updated = $last_updated | .[$tag].commit_message = $commit_message | .[$tag].commit_sha = $commit_sha | .[$tag].description = $description | .[$tag].last_updated_url = $last_updated_url' <<< "${json}" | tee ${JSON_FILE}
 
             [[ ! -f ${WEB_FILE} ]] && exit 0
             table_html="<tbody id=\"tags-table-body\">\n"
             tags_json=$(cat "${JSON_FILE}")
             branches=$(jq -r 'keys[]' <<< "${tags_json}")
             while IFS= read -r branch; do
-              hide=$(jq -r --arg branch "${branch}" '.[$branch].hide' <<< "${tags_json}")
-              [[ ${hide} == "true" ]] && continue
               commit_message=$(jq -r --arg branch "${branch}" '.[$branch].commit_message' <<< "${tags_json}")
               commit_sha=$(jq -r --arg branch "${branch}" '.[$branch].commit_sha' <<< "${tags_json}")
               [[ "${commit_sha}" != "null" ]] && commit_message="<a href=\"https://github.com/${REPOSITORY}/commit/${commit_sha}\" target=\"_blank\">${commit_message}</a>"
@@ -345,8 +342,8 @@ jobs:
           SERVER_URL:       ${{ github.server_url }}
           SHA:              ${{ github.sha }}
           IMAGE_TAG_BRANCH: ${{ needs.build.outputs.image-tag-branch }}
-          VERSION:          ${{ needs.build.outputs.version }}
-          CREATED:          ${{ needs.build.outputs.created }}
+          VERSION:          ${{ needs.build.outputs.meta-version }}
+          CREATED:          ${{ needs.build.outputs.meta-created }}
           STATUS:           ${{ needs.publish.result }}
         with:
           max_attempts: 3
