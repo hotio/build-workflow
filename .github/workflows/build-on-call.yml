@@ -231,7 +231,6 @@ jobs:
             done < manifest.list
 
   tags:
-    if: (needs.build.outputs.meta-hide != 'true')
     runs-on: ubuntu-24.04
     needs: [build, publish]
     steps:
@@ -246,6 +245,7 @@ jobs:
           SERVER_URL:                                ${{ github.server_url }}
           COMMIT_MESSAGE:                            ${{ github.event.head_commit.message }}
           COMMIT_SHA:                                ${{ github.sha }}
+          HIDE:                                      ${{ needs.build.outputs.meta-hide }}
           DESCRIPTION:                               ${{ needs.build.outputs.meta-description }}
           CREATED:                                   ${{ needs.build.outputs.meta-created }}
           IMAGE_TAG_BRANCH:                          ${{ needs.build.outputs.image-tag-branch }}
@@ -260,6 +260,7 @@ jobs:
           timeout_minutes: 5
           retry_wait_seconds: 30
           command: |
+            [[ ${HIDE} == true ]] && exit 0
             rm -rf "${WORKSPACE}/website"
             git clone -b "master" "https://${PERSONAL_TOKEN}@github.com/${REPOSITORY_WEBSITE}.git" "${WORKSPACE}/website"
 
@@ -328,7 +329,7 @@ jobs:
   notify:
     runs-on: ubuntu-24.04
     if: always()
-    needs: [build, publish]
+    needs: [build, publish, tags]
     steps:
       - name: Send Discord Notification
         uses: nick-fields/retry@v3
@@ -343,7 +344,7 @@ jobs:
           IMAGE_TAG_BRANCH: ${{ needs.build.outputs.image-tag-branch }}
           VERSION:          ${{ needs.build.outputs.meta-version }}
           CREATED:          ${{ needs.build.outputs.meta-created }}
-          STATUS:           ${{ needs.publish.result }}
+          STATUS:           ${{ needs.tags.result }}
         with:
           max_attempts: 3
           timeout_minutes: 5
