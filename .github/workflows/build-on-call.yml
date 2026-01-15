@@ -127,7 +127,7 @@ jobs:
           build-args: |
             ${{ steps.meta.outputs.build-args }}
           secrets: |
-            GITHUB_TOKEN=${{ secrets.NO_PERMS_TOKEN }}
+            NO_PERMS_TOKEN=${{ secrets.NO_PERMS_TOKEN }}
 
       - name: List Packages
         if: (steps.platform-exists.outputs.result == 'ok')
