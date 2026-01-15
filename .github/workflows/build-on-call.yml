@@ -127,7 +127,7 @@ jobs:
           build-args: |
             ${{ steps.meta.outputs.build-args }}
           secrets: |
-            "token=${{ secrets.NO_PERMS_TOKEN }}"
+            "token=${{ secrets.PERSONAL_TOKEN }}"
 
       - name: List Packages
         if: (steps.platform-exists.outputs.result == 'ok')
