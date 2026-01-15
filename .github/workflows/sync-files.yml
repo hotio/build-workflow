@@ -25,7 +25,7 @@ jobs:
               cd "${REPOSITORY}" || exit 1
               ###########################################
               echo "Do Stuff!"
-              curl -fsSL https://raw.githubusercontent.com/hotio/autoscan/refs/heads/nightly/build.sh > build.sh
+              curl -fsSL https://raw.githubusercontent.com/hotio/slskd/refs/heads/nightly/build.sh > build.sh
               #rm -f tags.json
               #rm -f .dockerignore
               #mv VERSION.json meta.json
