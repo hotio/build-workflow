@@ -75,6 +75,7 @@ jobs:
           else
             TAG="${BRANCH}"
           fi
+          LICENSE=$(jq -r '.license // empty' < meta.json)
           echo "meta-description=$(jq -r '.description // empty' < meta.json)" >> $GITHUB_OUTPUT
           echo "meta-hide=$(jq -r '.hide // false' < meta.json)" >> $GITHUB_OUTPUT
           echo "meta-created=$(date --utc --date=@$(git show -s --format=%ct $(git rev-parse --short HEAD)) +'%Y-%m-%dT%H:%M:%S.000Z')" >> $GITHUB_OUTPUT
@@ -101,7 +102,7 @@ jobs:
           echo 'build-args<<EOF' >> $GITHUB_OUTPUT
             jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < meta.json >> $GITHUB_OUTPUT
             echo "PACKAGE_VERSION=${TAG}-${SHA:0:7}" >> $GITHUB_OUTPUT
-            echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${TAG}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
+            echo "IMAGE_STATS=$(jq '.app = "'"${REPOSITORY/${REPOSITORY_OWNER}\//}"'" | .image = "'"${REPOSITORY}:${TAG}"'" | .revision = "'"${SHA:0:7}"'" | .version = "'"${VERSION}"'" | .license = "'"${LICENSE}"'"' <<< "{}" | base64 -w 0)" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Build Image
