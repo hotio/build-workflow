@@ -124,7 +124,6 @@ jobs:
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.documentation=${{ steps.meta.outputs.meta-docs-url }}
             org.opencontainers.image.version=${{ steps.meta.outputs.meta-version }}
-            org.opencontainers.image.licenses=GPL-3.0
           build-args: |
             ${{ steps.meta.outputs.build-args }}
 
