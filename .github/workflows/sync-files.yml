@@ -15,8 +15,6 @@ jobs:
       - name: Do Work
         env:
           REPOSITORY_OWNER: ${{ github.repository_owner }}
-          GH_ACTOR:         ${{ github.actor }}
-          GH_TOKEN:         ${{ github.token }}
           PERSONAL_TOKEN:   ${{ secrets.PERSONAL_TOKEN }}
         run: |
           while read REPOSITORY; do
@@ -25,7 +23,7 @@ jobs:
               cd "${REPOSITORY}" || exit 1
               ###########################################
               echo "Do Stuff!"
-              curl -fsSL https://raw.githubusercontent.com/hotio/slskd/refs/heads/nightly/build.sh > build.sh
+              #curl -fsSL https://raw.githubusercontent.com/hotio/slskd/refs/heads/nightly/build.sh > build.sh
               #rm -f tags.json
               #rm -f .dockerignore
               #mv VERSION.json meta.json
@@ -37,5 +35,5 @@ jobs:
               ###########################################
               cd .. || exit 1
               rm -rf "${REPOSITORY}"
-            done < <(curl -u "${GH_ACTOR}:${GH_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re --arg branch_filter "${BRANCH_FILTER}" '.[] | select(.name!="master") | select(.name|test("\($branch_filter)")) | .name')
-          done < <(curl -u "${GH_ACTOR}:${GH_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re --arg repository_filter "${REPOSITORY_FILTER}" '.[] | select(.topics[]=="docker-image") | select(.name|test("\($repository_filter)")) | .name')
+            done < <(curl -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re '.[] | select(.name!="master") | .name')
+          done < <(curl -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re '.[] | select(.topics[]=="docker-image") | .name')

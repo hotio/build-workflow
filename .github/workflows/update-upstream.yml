@@ -64,5 +64,5 @@ jobs:
               ###########################################
               cd .. || exit 1
               rm -rf "${REPOSITORY}"
-            done < <(curl -u "${GH_ACTOR}:${GH_TOKEN}" -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re '.[] | select(.name!="master") | .name')
-          done < <(curl -u "${GH_ACTOR}:${GH_TOKEN}" -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re '.[] | select(.topics[]=="docker-image") | .name')
+            done < <(curl -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re '.[] | select(.name!="master") | .name')
+          done < <(curl -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re '.[] | select(.topics[]=="docker-image") | .name')
