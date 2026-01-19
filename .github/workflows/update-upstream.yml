@@ -39,7 +39,7 @@ jobs:
                 discord_message="Upstream digest changes detected."
               fi
               [[ "${BRANCH}" == *pr ]] && commit_message="${commit_message} [skip ci]"
-              git add .
+              git add meta.json
               if git commit -m "${commit_message}"; then
                 git push
                 GIT_SHA=$(git log -n 1 --pretty=format:"%H")

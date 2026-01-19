@@ -42,7 +42,7 @@ jobs:
                 commit_message="Version update"
                 discord_message="Version changes detected."
               fi
-              git add .
+              git add meta.json
               if git commit -m "${commit_message}"; then
                 git push
                 GIT_SHA=$(git log -n 1 --pretty=format:"%H")
