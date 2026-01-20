@@ -4,8 +4,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron:  '*/15 * * * *'
-  repository_dispatch:
-    types: [update-versions-webhook]
 
 jobs:
   do-work:
@@ -18,11 +16,9 @@ jobs:
 
       - name: Do Work
         env:
-          REPOSITORY_OWNER:  ${{ github.repository_owner }}
-          PERSONAL_TOKEN:    ${{ secrets.PERSONAL_TOKEN }}
-          DISCORD_WEBHOOK:   ${{ secrets.DISCORD_WEBHOOK }}
-          REPOSITORY_FILTER: ${{ github.event.client_payload.repo }}
-          BRANCH_FILTER:     ${{ github.event.client_payload.branch }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          PERSONAL_TOKEN:   ${{ secrets.PERSONAL_TOKEN }}
+          DISCORD_WEBHOOK:  ${{ secrets.DISCORD_WEBHOOK }}
         run: |
           while IFS= read -r REPOSITORY; do
             while IFS= read -r BRANCH; do
@@ -67,5 +63,5 @@ jobs:
               ###########################################
               cd .. || exit 1
               rm -rf "${REPOSITORY}"
-            done < <(curl -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re --arg branch_filter "${BRANCH_FILTER}" '.[] | select(.name!="master") | select(.name|test("\($branch_filter)")) | .name')
-          done < <(curl -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re --arg repository_filter "${REPOSITORY_FILTER}" '.[] | select(.topics[]=="docker-image") | select(.name|test("\($repository_filter)")) | .name')
+            done < <(curl -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re '.[] | select(.name!="master") | .name')
+          done < <(curl -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re '.[] | select(.topics[]=="docker-image") | .name')
