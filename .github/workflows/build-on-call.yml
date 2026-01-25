@@ -69,7 +69,7 @@ jobs:
           VERSION_CLEAN=$(sed 's/[^[:alnum:]\.\_\-]/-/g' <<< "${VERSION}")
           IS_LATEST=$(jq -r '.latest // false' < meta.json)
           if [[ ${BRANCH} == *pr ]]; then
-            TAG="${BRANCH}-$(jq -r '.version_branch // empty' < meta.json)"
+            TAG="${BRANCH}-$(jq -r '.version_branch // empty' < meta.json | sed 's/[^[:alnum:]\.\_\-]/-/g')"
           else
             TAG="${BRANCH}"
           fi
