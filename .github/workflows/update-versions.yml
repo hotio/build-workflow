@@ -18,6 +18,7 @@ jobs:
         env:
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           PERSONAL_TOKEN:   ${{ secrets.PERSONAL_TOKEN }}
+          GITHUB_TOKEN:     ${{ secrets.GITHUB_TOKEN }}
           DISCORD_WEBHOOK:  ${{ secrets.DISCORD_WEBHOOK }}
         run: |
           while IFS= read -r REPOSITORY; do
@@ -63,5 +64,5 @@ jobs:
               ###########################################
               cd .. || exit 1
               rm -rf "${REPOSITORY}"
-            done < <(curl -fsSL "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re '.[] | select(.name!="master") | .name')
-          done < <(curl -fsSL "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re '.[] | select(.topics[]=="docker-image") | .name')
+            done < <(curl -fsSL --header "Authorization: Bearer ${GITHUB_TOKEN}" "https://api.github.com/repos/${REPOSITORY_OWNER}/${REPOSITORY}/branches" | jq -re '.[] | select(.name!="master") | .name')
+          done < <(curl -fsSL --header "Authorization: Bearer ${GITHUB_TOKEN}" "https://api.github.com/users/${REPOSITORY_OWNER}/repos?per_page=1000" | jq -re '.[] | select(.topics[]=="docker-image") | .name')
