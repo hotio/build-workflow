@@ -294,6 +294,7 @@ jobs:
             branches=$(jq -r 'keys[]' <<< "${tags_json}")
             while IFS= read -r branch; do
               commit_message=$(jq -r --arg branch "${branch}" '.[$branch].commit_message' <<< "${tags_json}")
+              commit_message=${commit_message//$'\n'/-}
               commit_sha=$(jq -r --arg branch "${branch}" '.[$branch].commit_sha' <<< "${tags_json}")
               [[ "${commit_sha}" != "null" ]] && commit_message="<a href=\"https://github.com/${REPOSITORY}/commit/${commit_sha}\" target=\"_blank\">${commit_message}</a>"
               description=$(jq -r --arg branch "${branch}" '.[$branch].description' <<< "${tags_json}")
