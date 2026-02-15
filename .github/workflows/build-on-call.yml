@@ -315,7 +315,7 @@ jobs:
               table_html+="<tr><td>${tags_html}</td><td>${description}</td><td>${commit_message}</td><td>${last_updated}</td></tr>\n"
             done <<< "${branches}"
             table_html+="</tbody>"
-            sed -i -z -e "s^<tbody id=\"tags-table-body\">.*</tbody>^${table_html}^" "${WEB_FILE}"
+            sed -i -z -e "s\037<tbody id=\"tags-table-body\">.*</tbody>\037${table_html}\037" "${WEB_FILE}"
             echo "${table_html}"
 
             git add "${WEB_FILE}"
