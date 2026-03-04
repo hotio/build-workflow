@@ -46,7 +46,7 @@ jobs:
 
       - name: Login to ghcr.io
         if: (steps.platform-exists.outputs.result == 'ok')
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -167,7 +167,7 @@ jobs:
     steps:
       - name: Login to ghcr.io
         if: (matrix.registry == 'ghcr.io')
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
