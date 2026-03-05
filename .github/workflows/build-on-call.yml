@@ -104,7 +104,7 @@ jobs:
 
       - name: Build Image
         if: (steps.platform-exists.outputs.result == 'ok')
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           provenance: false
           load: true
