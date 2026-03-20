@@ -174,7 +174,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Manifests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
           REGISTRY:                                  ${{ matrix.registry }}
@@ -216,7 +216,7 @@ jobs:
             done < manifest.list
 
       - name: Push Manifests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
         with:
@@ -233,7 +233,7 @@ jobs:
     needs: [build, publish]
     steps:
       - name: Update tags
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         env:
           PERSONAL_TOKEN:                            ${{ secrets.PERSONAL_TOKEN }}
           WORKSPACE:                                 ${{ github.workspace }}
@@ -331,7 +331,7 @@ jobs:
     needs: [build, publish, tags]
     steps:
       - name: Send Discord Notification
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         env:
           DISCORD_WEBHOOK:  ${{ secrets.DISCORD_WEBHOOK }}
           DISCORD_MENTIONS: ${{ vars.DISCORD_MENTIONS }}
